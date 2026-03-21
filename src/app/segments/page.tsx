@@ -136,6 +136,7 @@ export default function SegmentsPage() {
               <XAxis type="number" tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [formatPercent(v as number), 'EBITDA %']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}

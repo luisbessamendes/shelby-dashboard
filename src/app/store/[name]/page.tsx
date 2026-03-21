@@ -4,10 +4,10 @@ import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  BarChart, Bar, Cell,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
-import { filterByPeriod, aggregate, getMonthlyTrend, getRatioTrend } from '@/lib/calculations';
+import { filterByPeriod, aggregate, getMonthlyTrend } from '@/lib/calculations';
 import KPICard from '@/components/ui/KPICard';
 import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
 
@@ -60,7 +60,6 @@ export default function StoreDetailPage() {
   // Trends (store)
   const salesTrend = useMemo(() => getMonthlyTrend(storeAllData, 'sales'), [storeAllData]);
   const ebitdaTrend = useMemo(() => getMonthlyTrend(storeAllData, 'ebitda'), [storeAllData]);
-  const ebitdaPctTrend = useMemo(() => getRatioTrend(storeAllData, 'ebitda'), [storeAllData]);
 
   // Cost structure
   const costStructure = useMemo(() => {
@@ -75,19 +74,6 @@ export default function StoreDetailPage() {
       { name: 'Others', value: (storeAgg.othersPct ?? 0) * 100 + (storeAgg.maintenancePct ?? 0) * 100, fill: '#6b7280' },
     ];
   }, [storeAgg]);
-
-  // Benchmark comparison for radar chart
-  const benchmarkData = useMemo(() => {
-    const metrics = [
-      { label: 'EBITDA %', store: (storeAgg.ebitdaPct ?? 0) * 100, portfolio: (portfolioAgg.ebitdaPct ?? 0) * 100 },
-      { label: 'Staff %', store: (storeAgg.staffPct ?? 0) * 100, portfolio: (portfolioAgg.staffPct ?? 0) * 100 },
-      { label: 'Raw Mat %', store: (storeAgg.rawMaterialsPct ?? 0) * 100, portfolio: (portfolioAgg.rawMaterialsPct ?? 0) * 100 },
-      { label: 'Rents %', store: (storeAgg.rentsPct ?? 0) * 100, portfolio: (portfolioAgg.rentsPct ?? 0) * 100 },
-      { label: 'SC %', store: (storeAgg.storeContributionPct ?? 0) * 100, portfolio: (portfolioAgg.storeContributionPct ?? 0) * 100 },
-      { label: 'FCFF %', store: (storeAgg.fcffPct ?? 0) * 100, portfolio: (portfolioAgg.fcffPct ?? 0) * 100 },
-    ];
-    return metrics;
-  }, [storeAgg, portfolioAgg]);
 
   // Diagnostic flags
   const diagnostics = useMemo(() => {
@@ -208,10 +194,11 @@ export default function StoreDetailPage() {
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [`${(v as number).toFixed(1)}%`]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-              />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                itemStyle={{ color: '#fff' }}
+              /><Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {costStructure.map((entry, idx) => (
                   <Cell key={idx} fill={entry.fill} />
                 ))}
@@ -231,10 +218,11 @@ export default function StoreDetailPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [formatCurrency(v), 'Sales']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-              />
-              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+                itemStyle={{ color: '#fff' }}
+              /><Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -247,10 +235,11 @@ export default function StoreDetailPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [formatCurrency(v), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-              />
-              <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+                itemStyle={{ color: '#fff' }}
+              /><Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

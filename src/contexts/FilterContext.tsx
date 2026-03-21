@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { FilterState, PeriodBasis, StoreMonthRecord } from '@/lib/types';
+import type { FilterState, StoreMonthRecord } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 interface FilterContextValue {

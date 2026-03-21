@@ -125,7 +125,8 @@ export default function RankingsPage() {
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -152,7 +153,8 @@ export default function RankingsPage() {
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -182,7 +184,8 @@ export default function RankingsPage() {
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -197,7 +200,7 @@ export default function RankingsPage() {
               />
               <Bar dataKey="ebitdaPct" fill="#10b981">
                 {top10Ebitda.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.ebitdaPct >= 0 ? '#10b981' : '#ef4444'} />
+                  <Cell key={idx} fill={(entry.ebitdaPct || 0) >= 0 ? '#10b981' : '#ef4444'} />
                 ))}
               </Bar>
             </BarChart>
@@ -213,7 +216,8 @@ export default function RankingsPage() {
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -228,7 +232,7 @@ export default function RankingsPage() {
               />
               <Bar dataKey="ebitdaPct">
                 {bottom10Ebitda.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.ebitdaPct >= 0 ? '#10b981' : '#ef4444'} />
+                  <Cell key={idx} fill={(entry.ebitdaPct || 0) >= 0 ? '#10b981' : '#ef4444'} />
                 ))}
               </Bar>
             </BarChart>
@@ -246,7 +250,8 @@ export default function RankingsPage() {
               <XAxis type="number" dataKey="x" name="Sales" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -277,7 +282,8 @@ export default function RankingsPage() {
               <XAxis type="number" dataKey="x" name="Staff %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <YAxis type="number" dataKey="y" name="Raw Mat %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (

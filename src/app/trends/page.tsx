@@ -113,6 +113,7 @@ export default function TrendsPage() {
             <XAxis dataKey="period" tick={{ fontSize: 10 }} />
             <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
             <Tooltip
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(v: any) => [formatCurrency(v), absoluteMetrics.find(m => m.value === activeMetric)?.label]}
               contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
               itemStyle={{ color: '#fff' }}
@@ -145,6 +146,7 @@ export default function TrendsPage() {
             <XAxis dataKey="period" tick={{ fontSize: 10 }} />
             <YAxis tickFormatter={(v: number) => formatPercent(v)} tick={{ fontSize: 10 }} />
             <Tooltip
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(v: any) => [formatPercent(v as number), ratioMetrics.find(m => m.value === activeRatio)?.label]}
               contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
               itemStyle={{ color: '#fff' }}
@@ -164,7 +166,8 @@ export default function TrendsPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
-                formatter={(v: any, name: any) => [formatCurrency(v), name.toUpperCase()]}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={(v: any, name: any) => [formatCurrency(v), name?.toUpperCase()]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -183,6 +186,7 @@ export default function TrendsPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any, name: any) => [`${(v as number).toFixed(1)}%`, name]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}

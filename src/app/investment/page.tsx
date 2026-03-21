@@ -154,7 +154,8 @@ export default function InvestmentPage() {
               <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
               <Tooltip
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -197,7 +198,8 @@ export default function InvestmentPage() {
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -232,7 +234,8 @@ export default function InvestmentPage() {
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
               <Tooltip
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
@@ -259,7 +262,8 @@ export default function InvestmentPage() {
               <XAxis type="number" dataKey="x" name="CAPEX" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <YAxis type="number" dataKey="y" name="FCFF" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
-                content={({ active, payload }) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                content={({ active, payload }: any) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (

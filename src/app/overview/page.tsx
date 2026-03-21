@@ -2,16 +2,15 @@
 
 import { useMemo } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
-  PieChart, Pie,
   AreaChart, Area,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
 import KPICard from '@/components/ui/KPICard';
 import { filterByPeriod, aggregate, aggregatePerStore, getMonthlyTrend, aggregateByDimension } from '@/lib/calculations';
 import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
-import { MONTH_SHORT_NAMES, CHART_COLORS } from '@/lib/constants';
+import { CHART_COLORS } from '@/lib/constants';
 
 export default function OverviewPage() {
   const { filteredData, filters, isLoading } = useFilters();
@@ -154,6 +153,7 @@ export default function OverviewPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [formatCurrency(v), 'Sales']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
@@ -178,7 +178,7 @@ export default function OverviewPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
-                formatter={(v: any) => [formatCurrency(v), 'EBITDA']}
+                formatter={(v: number) => [formatCurrency(v), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -237,7 +237,8 @@ export default function OverviewPage() {
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10 }} />
               <Tooltip
-                formatter={(v: any) => [formatCurrency(v as number)]}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={(v: any) => [formatCurrency(v)]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -261,7 +262,7 @@ export default function OverviewPage() {
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="store" width={180} tick={{ fontSize: 9 }} />
               <Tooltip
-                formatter={(v: any) => [formatCurrency(v as number), 'EBITDA']}
+                formatter={(v: number) => [formatCurrency(v), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -278,7 +279,7 @@ export default function OverviewPage() {
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="store" width={180} tick={{ fontSize: 9 }} />
               <Tooltip
-                formatter={(v: any) => [formatCurrency(v as number), 'EBITDA']}
+                formatter={(v: number) => [formatCurrency(v), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />

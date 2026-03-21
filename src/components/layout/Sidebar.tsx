@@ -40,7 +40,7 @@ export default function Sidebar() {
             >
               <span className="nav-icon">{ICONS[item.icon]}</span>
               <span>{item.label}</span>
-              {'phase2' in item && item.phase2 && (
+              {'phase2' in item && Boolean((item as { phase2?: boolean }).phase2) && (
                 <span className="nav-phase2-badge">Soon</span>
               )}
             </Link>

@@ -4,7 +4,6 @@
 
 import type {
   StoreMonthRecord,
-  StoreMonthWithRatios,
   AggregatedMetrics,
   PeriodBasis,
 } from './types';

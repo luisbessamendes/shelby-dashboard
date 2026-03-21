@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { parseExcelFile } from '@/lib/excel-parser';
 import { supabase } from '@/lib/supabase';
 import { useFilters } from '@/contexts/FilterContext';
-import type { StoreMonthRecord, UploadRecord } from '@/lib/types';
+import type { StoreMonthRecord } from '@/lib/types';
 
 export default function FileUploader() {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -21,7 +21,7 @@ export default function FileUploader() {
     setFileName(file.name);
 
     const buffer = await file.arrayBuffer();
-    const result = parseExcelFile(buffer, file.name);
+    const result = parseExcelFile(buffer);
 
     setParseErrors(result.errors);
     setPreview(result.records);

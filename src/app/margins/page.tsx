@@ -3,11 +3,11 @@
 import { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  Cell, ScatterChart, Scatter, ZAxis,
+  Cell, ScatterChart, Scatter,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
 import { filterByPeriod, aggregate, aggregatePerStore } from '@/lib/calculations';
-import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatCompact } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
 export default function MarginsPage() {
@@ -29,11 +29,11 @@ export default function MarginsPage() {
   const costStack = useMemo(() => {
     if (portfolio.totalSales === 0) return [];
     return [
-      { name: 'Raw Materials', value: (portfolio.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
+      { name: 'Raw Mat.', value: (portfolio.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
       { name: 'Staff', value: (portfolio.staffPct ?? 0) * 100, fill: '#f59e0b' },
       { name: 'Rents', value: (portfolio.rentsPct ?? 0) * 100, fill: '#8b5cf6' },
       { name: 'Utilities', value: (portfolio.utilitiesPct ?? 0) * 100, fill: '#06b6d4' },
-      { name: 'Maintenance', value: (portfolio.maintenancePct ?? 0) * 100, fill: '#6b7280' },
+      { name: 'Maint.', value: (portfolio.maintenancePct ?? 0) * 100, fill: '#6b7280' },
       { name: 'Banking', value: (portfolio.bankingCostsPct ?? 0) * 100, fill: '#3b82f6' },
       { name: 'VAT', value: (portfolio.vatPct ?? 0) * 100, fill: '#ec4899' },
       { name: 'Others', value: (portfolio.othersPct ?? 0) * 100, fill: '#9ca3af' },
@@ -94,9 +94,9 @@ export default function MarginsPage() {
       { name: '- Raw Mat', raw: -portfolio.totalRawMaterials, color: '#ef4444' },
       { name: '- Staff', raw: -portfolio.totalStaff, color: '#ef4444' },
       { name: '- Rents', raw: -portfolio.totalRents, color: '#ef4444' },
-      { name: '- Other Costs', raw: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalVat + portfolio.totalOthers), color: '#ef4444' },
+      { name: '- Oth. Costs', raw: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalVat + portfolio.totalOthers), color: '#ef4444' },
       { name: '= EBITDA', raw: portfolio.totalEbitda, isTotal: true, color: portfolio.totalEbitda >= 0 ? '#10b981' : '#ef4444' },
-      { name: '- CAPEX/CIT', raw: -(portfolio.totalCapex + portfolio.totalCit), color: '#f59e0b' },
+      { name: '- CPX/CIT', raw: -(portfolio.totalCapex + portfolio.totalCit), color: '#f59e0b' },
       { name: '= FCFF', raw: portfolio.totalFcff, isTotal: true, color: portfolio.totalFcff >= 0 ? '#10b981' : '#ef4444' },
     ];
 
@@ -151,9 +151,10 @@ export default function MarginsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={costStack}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) => [`${(v as number).toFixed(1)}%`]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
@@ -173,7 +174,7 @@ export default function MarginsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={waterfallData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} interval={0} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
               <Tooltip
                 content={({ active, payload }) => {

@@ -16,7 +16,7 @@ export interface ParseResult {
  * Parse an Excel file buffer into StoreMonthRecord[]
  * Expects a flat table with headers in row 1 matching EXCEL_COLUMN_MAP keys.
  */
-export function parseExcelFile(buffer: ArrayBuffer, filename: string): ParseResult {
+export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
   const errors: string[] = [];
   let skippedRows = 0;
 
