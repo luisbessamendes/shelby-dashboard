@@ -184,7 +184,7 @@ function countNegativeStores(records: StoreMonthRecord[], metric: 'ebitda' | 'fc
  */
 export function getMonthlyTrend(
   records: StoreMonthRecord[],
-  metric: keyof Pick<StoreMonthRecord, 'sales' | 'tickets' | 'avg_ticket' | 'ebitda' | 'fcff' | 'raw_materials' | 'staff' | 'store_contribution'>,
+  metric: keyof Pick<StoreMonthRecord, 'sales' | 'tickets' | 'avg_ticket' | 'ebitda' | 'fcff' | 'raw_materials' | 'staff' | 'store_contribution' | 'capex'>,
 ): Array<{ period: string; year: number; month: number; value: number; sales: number }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
   for (const r of records) {

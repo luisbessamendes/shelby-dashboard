@@ -3,6 +3,7 @@ import './globals.css';
 import { FilterProvider } from '@/contexts/FilterContext';
 import Sidebar from '@/components/layout/Sidebar';
 import FilterBar from '@/components/layout/FilterBar';
+import ChatLauncher from '@/components/chat/ChatLauncher';
 
 export const metadata: Metadata = {
   title: 'Shelby Dashboard — Multi-Brand Performance Analytics',
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </main>
           </div>
+          <ChatLauncher />
         </FilterProvider>
       </body>
     </html>
