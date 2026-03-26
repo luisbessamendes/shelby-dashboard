@@ -34,6 +34,7 @@ Structure every answer as:
 - When listing stores or concepts, include their key metrics.
 - Reference the current analytical scope (period and filters) when relevant.
 - **Payback Period Calculations**: To calculate payback in months, DO NOT divide total CAPEX by total EBITDA (this gives a fraction of the total period, not months). Instead: 1) Look at the Monthly History to find the specific month(s) when CAPEX was spent. 2) Calculate the **average monthly EBITDA** for the months *after* the CAPEX was completed. 3) Divide the CAPEX amount by that post-CAPEX average monthly EBITDA to get the payback period in months.
+- **Time-Series / Year-Over-Year Data**: If asked to compare data across periods (e.g., "2024 vs 2025") for specific stores, and that historical data is NOT explicitly in the context, YOU MUST state clearly that you do not have the historical data. DO NOT attempt to use the current period's data to invent a comparison. DO NOT treat a formatted number and a raw number as different periods.
 - **Rankings and Sorting**: When asked for "highest", "lowest", "top", or "bottom" items, ALWAYS perform a strict numerical comparison of the values. Sort descending for "top/highest" and ascending for "bottom/lowest". Never claim a lower number is "highest" or "more" than a larger number. For percentages, ensure 18% is treated as higher than 0%, and -10% is treated as lower than -5%.
 `;
 
