@@ -140,6 +140,7 @@ export default function FilterBar() {
     availableConcepts,
     availableRegions,
     availableStoreTypes,
+    availableLocations,
   } = useFilters();
 
   const periodOptions: { value: PeriodBasis; label: string }[] = [
@@ -217,6 +218,14 @@ export default function FilterBar() {
         options={availableRegions}
         selectedValues={filters.regions}
         onChange={(vals) => updateFilter('regions', vals)}
+      />
+
+      {/* Location */}
+      <MultiSelectDropdown
+        label="Location"
+        options={availableLocations}
+        selectedValues={filters.locations}
+        onChange={(vals) => updateFilter('locations', vals)}
       />
 
       {/* Store Type */}
