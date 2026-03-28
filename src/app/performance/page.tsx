@@ -126,20 +126,20 @@ export default function PerformancePage() {
             <thead>
               <tr>
                 <th className={thClass('store')} onClick={() => handleSort('store')}>Store {sortKey === 'store' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept</th>
-                <th className={thClass('region')} onClick={() => handleSort('region')}>Region</th>
-                <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type</th>
+                <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept {sortKey === 'concept' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('region')} onClick={() => handleSort('region')}>Region {sortKey === 'region' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type {sortKey === 'store_type' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Sales {sortKey === 'totalSales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets</th>
-                <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket</th>
-                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat %</th>
-                <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff %</th>
-                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents %</th>
-                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC %</th>
+                <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets {sortKey === 'totalTickets' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff % {sortKey === 'staffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents % {sortKey === 'rentsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC % {sortKey === 'storeContributionPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA {sortKey === 'totalEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA %</th>
-                <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF</th>
-                <th className={thClass('fcffPct')} onClick={() => handleSort('fcffPct')}>FCFF %</th>
+                <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA % {sortKey === 'ebitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF {sortKey === 'totalFcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('fcffPct')} onClick={() => handleSort('fcffPct')}>FCFF % {sortKey === 'fcffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
               </tr>
             </thead>
             <tbody>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,6 +15,20 @@ export default function StoreDetailPage() {
   const params = useParams();
   const storeName = decodeURIComponent(params.name as string);
   const { filteredData, allData, filters, isLoading } = useFilters();
+
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const thClass = (key: string) => `${sortKey === key ? 'sorted' : ''}`;
 
   // Store data (all months)
   const storeAllData = useMemo(() => allData.filter(d => d.store === storeName), [allData, storeName]);
@@ -153,33 +167,53 @@ export default function StoreDetailPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Metric</th>
-                  <th>Store</th>
-                  <th>Portfolio</th>
-                  <th>Concept</th>
-                  <th>Region</th>
-                  <th>Format</th>
+                  <th className={thClass('label')} onClick={() => handleSort('label')}>Metric {sortKey === 'label' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className={thClass('s')} onClick={() => handleSort('s')}>Store {sortKey === 's' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className={thClass('p')} onClick={() => handleSort('p')}>Portfolio {sortKey === 'p' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className={thClass('c')} onClick={() => handleSort('c')}>Concept {sortKey === 'c' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className={thClass('r')} onClick={() => handleSort('r')}>Region {sortKey === 'r' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className={thClass('f')} onClick={() => handleSort('f')}>Format {sortKey === 'f' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { label: 'EBITDA %', s: storeAgg.ebitdaPct, p: portfolioAgg.ebitdaPct, c: conceptAgg.ebitdaPct, r: regionAgg.ebitdaPct, f: formatAgg.ebitdaPct },
-                  { label: 'Staff %', s: storeAgg.staffPct, p: portfolioAgg.staffPct, c: conceptAgg.staffPct, r: regionAgg.staffPct, f: formatAgg.staffPct },
-                  { label: 'Raw Mat %', s: storeAgg.rawMaterialsPct, p: portfolioAgg.rawMaterialsPct, c: conceptAgg.rawMaterialsPct, r: regionAgg.rawMaterialsPct, f: formatAgg.rawMaterialsPct },
-                  { label: 'Rents %', s: storeAgg.rentsPct, p: portfolioAgg.rentsPct, c: conceptAgg.rentsPct, r: regionAgg.rentsPct, f: formatAgg.rentsPct },
-                  { label: 'SC %', s: storeAgg.storeContributionPct, p: portfolioAgg.storeContributionPct, c: conceptAgg.storeContributionPct, r: regionAgg.storeContributionPct, f: formatAgg.storeContributionPct },
-                  { label: 'FCFF %', s: storeAgg.fcffPct, p: portfolioAgg.fcffPct, c: conceptAgg.fcffPct, r: regionAgg.fcffPct, f: formatAgg.fcffPct },
-                  { label: 'Avg Ticket', s: storeAgg.avgTicket, p: portfolioAgg.avgTicket, c: conceptAgg.avgTicket, r: regionAgg.avgTicket, f: formatAgg.avgTicket },
-                ].map(row => (
-                  <tr key={row.label}>
-                    <td style={{ fontWeight: 500 }}>{row.label}</td>
-                    <td className="numeric" style={{ fontWeight: 600 }}>{row.label.includes('%') ? formatPercent(row.s) : formatCurrency(row.s as number)}</td>
-                    <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.p) : formatCurrency(row.p as number)}</td>
-                    <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.c) : formatCurrency(row.c as number)}</td>
-                    <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.r) : formatCurrency(row.r as number)}</td>
-                    <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.f) : formatCurrency(row.f as number)}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  const arr = [
+                    { label: 'EBITDA %', s: storeAgg.ebitdaPct, p: portfolioAgg.ebitdaPct, c: conceptAgg.ebitdaPct, r: regionAgg.ebitdaPct, f: formatAgg.ebitdaPct },
+                    { label: 'Staff %', s: storeAgg.staffPct, p: portfolioAgg.staffPct, c: conceptAgg.staffPct, r: regionAgg.staffPct, f: formatAgg.staffPct },
+                    { label: 'Raw Mat %', s: storeAgg.rawMaterialsPct, p: portfolioAgg.rawMaterialsPct, c: conceptAgg.rawMaterialsPct, r: regionAgg.rawMaterialsPct, f: formatAgg.rawMaterialsPct },
+                    { label: 'Rents %', s: storeAgg.rentsPct, p: portfolioAgg.rentsPct, c: conceptAgg.rentsPct, r: regionAgg.rentsPct, f: formatAgg.rentsPct },
+                    { label: 'SC %', s: storeAgg.storeContributionPct, p: portfolioAgg.storeContributionPct, c: conceptAgg.storeContributionPct, r: regionAgg.storeContributionPct, f: formatAgg.storeContributionPct },
+                    { label: 'FCFF %', s: storeAgg.fcffPct, p: portfolioAgg.fcffPct, c: conceptAgg.fcffPct, r: regionAgg.fcffPct, f: formatAgg.fcffPct },
+                    { label: 'Avg Ticket', s: storeAgg.avgTicket, p: portfolioAgg.avgTicket, c: conceptAgg.avgTicket, r: regionAgg.avgTicket, f: formatAgg.avgTicket },
+                  ];
+                  
+                  if (sortKey) {
+                    arr.sort((a, b) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const va = (a as any)[sortKey];
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const vb = (b as any)[sortKey];
+                      const numA = typeof va === 'number' ? va : 0;
+                      const numB = typeof vb === 'number' ? vb : 0;
+                      
+                      if (typeof va === 'string' && typeof vb === 'string') {
+                        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+                      }
+                      return sortDir === 'asc' ? numA - numB : numB - numA;
+                    });
+                  }
+                  
+                  return arr.map(row => (
+                    <tr key={row.label}>
+                      <td style={{ fontWeight: 500 }}>{row.label}</td>
+                      <td className="numeric" style={{ fontWeight: 600 }}>{row.label.includes('%') ? formatPercent(row.s) : formatCurrency(row.s as number)}</td>
+                      <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.p) : formatCurrency(row.p as number)}</td>
+                      <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.c) : formatCurrency(row.c as number)}</td>
+                      <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.r) : formatCurrency(row.r as number)}</td>
+                      <td className="numeric" style={{ color: 'var(--text-secondary)' }}>{row.label.includes('%') ? formatPercent(row.f) : formatCurrency(row.f as number)}</td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           </div>

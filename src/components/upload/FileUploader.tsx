@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { parseExcelFile } from '@/lib/excel-parser';
 import { supabase } from '@/lib/supabase';
 import { useFilters } from '@/contexts/FilterContext';
@@ -14,6 +14,20 @@ export default function FileUploader() {
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
   const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [sortKey, setSortKey] = useState<string>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const thClass = (key: string) => `${sortKey === key ? 'sorted' : ''}`;
   const { refreshData } = useFilters();
 
   const handleFile = useCallback(async (file: File) => {
@@ -163,19 +177,37 @@ export default function FileUploader() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Store</th>
-                    <th>Concept</th>
-                    <th>Region</th>
-                    <th>Type</th>
-                    <th>Year</th>
-                    <th>Month</th>
-                    <th>Sales</th>
-                    <th>EBITDA</th>
-                    <th>FCFF</th>
+                    <th className={thClass('store')} onClick={() => handleSort('store')}>Store {sortKey === 'store' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept {sortKey === 'concept' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('region')} onClick={() => handleSort('region')}>Region {sortKey === 'region' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type {sortKey === 'store_type' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('year')} onClick={() => handleSort('year')}>Year {sortKey === 'year' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('month')} onClick={() => handleSort('month')}>Month {sortKey === 'month' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('sales')} onClick={() => handleSort('sales')}>Sales {sortKey === 'sales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('ebitda')} onClick={() => handleSort('ebitda')}>EBITDA {sortKey === 'ebitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('fcff')} onClick={() => handleSort('fcff')}>FCFF {sortKey === 'fcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.slice(0, 50).map((r, i) => (
+                  {(() => {
+                    if (!sortKey) return preview.slice(0, 50);
+                    const arr = [...preview];
+                    arr.sort((a, b) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const va = (a as any)[sortKey];
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const vb = (b as any)[sortKey];
+                      
+                      const numA = typeof va === 'number' ? va : 0;
+                      const numB = typeof vb === 'number' ? vb : 0;
+                      
+                      if (typeof va === 'string' && typeof vb === 'string') {
+                        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+                      }
+                      return sortDir === 'asc' ? numA - numB : numB - numA;
+                    });
+                    return arr.slice(0, 50);
+                  })().map((r, i) => (
                     <tr key={i}>
                       <td>{r.store}</td>
                       <td>{r.concept}</td>

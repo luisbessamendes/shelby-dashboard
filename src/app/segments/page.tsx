@@ -23,6 +23,19 @@ const DIMENSIONS: { value: Dimension; label: string }[] = [
 export default function SegmentsPage() {
   const { filteredData, filters, isLoading } = useFilters();
   const [dimension, setDimension] = useState<Dimension>('concept');
+  const [sortKey, setSortKey] = useState<string>('ebitdaPct');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const thClass = (key: string) => `${sortKey === key ? 'sorted' : ''}`;
 
   const periodData = useMemo(() => {
     if (!filters.year || !filters.month) return filteredData;
@@ -31,10 +44,25 @@ export default function SegmentsPage() {
 
   const segmentData = useMemo(() => {
     const map = aggregateByDimension(periodData, dimension);
-    return Array.from(map.entries())
-      .map(([name, agg]) => ({ name, ...agg }))
-      .sort((a, b) => (b.ebitdaPct ?? 0) - (a.ebitdaPct ?? 0));
-  }, [periodData, dimension]);
+    const arr = Array.from(map.entries())
+      .map(([name, agg]) => ({ name, ...agg }));
+      
+    arr.sort((a, b) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const va = (a as any)[sortKey];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vb = (b as any)[sortKey];
+      const numA = typeof va === 'number' ? va : 0;
+      const numB = typeof vb === 'number' ? vb : 0;
+      
+      if (typeof va === 'string' && typeof vb === 'string') {
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      return sortDir === 'asc' ? numA - numB : numB - numA;
+    });
+    
+    return arr;
+  }, [periodData, dimension, sortKey, sortDir]);
 
   // Bubble chart data: Sales vs EBITDA %, bubble size = store count
   const bubbleData = useMemo(
@@ -90,18 +118,18 @@ export default function SegmentsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>{DIMENSIONS.find(d => d.value === dimension)?.label}</th>
-                <th># Stores</th>
-                <th>Sales</th>
-                <th>Tickets</th>
-                <th>Avg Ticket</th>
-                <th>Raw Mat %</th>
-                <th>Staff %</th>
-                <th>SC %</th>
-                <th>EBITDA</th>
-                <th>EBITDA %</th>
-                <th>FCFF</th>
-                <th>FCFF %</th>
+                <th className={thClass('name')} onClick={() => handleSort('name')}>{DIMENSIONS.find(d => d.value === dimension)?.label} {sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('storeCount')} onClick={() => handleSort('storeCount')}># Stores {sortKey === 'storeCount' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Sales {sortKey === 'totalSales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets {sortKey === 'totalTickets' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff % {sortKey === 'staffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC % {sortKey === 'storeContributionPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA {sortKey === 'totalEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA % {sortKey === 'ebitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF {sortKey === 'totalFcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('fcffPct')} onClick={() => handleSort('fcffPct')}>FCFF % {sortKey === 'fcffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
               </tr>
             </thead>
             <tbody>

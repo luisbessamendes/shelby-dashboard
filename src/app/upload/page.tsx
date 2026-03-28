@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import FileUploader from '@/components/upload/FileUploader';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,21 @@ import { useFilters } from '@/contexts/FilterContext';
 export default function UploadPage() {
   const [uploads, setUploads] = useState<UploadRecord[]>([]);
   const [isClearing, setIsClearing] = useState(false);
+  
+  const [sortKey, setSortKey] = useState<string>('uploaded_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const thClass = (key: string) => `${sortKey === key ? 'sorted' : ''}`;
+
   const router = useRouter();
   const { refreshData } = useFilters();
 
@@ -89,33 +104,57 @@ export default function UploadPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>File</th>
-                    <th>Status</th>
-                    <th>Rows</th>
-                    <th>Date</th>
+                    <th className={thClass('filename')} onClick={() => handleSort('filename')}>File {sortKey === 'filename' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('status')} onClick={() => handleSort('status')}>Status {sortKey === 'status' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('rows_inserted')} onClick={() => handleSort('rows_inserted')}>Rows {sortKey === 'rows_inserted' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('uploaded_at')} onClick={() => handleSort('uploaded_at')}>Date {sortKey === 'uploaded_at' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {uploads.map(u => (
-                    <tr key={u.id}>
-                      <td>{u.filename}</td>
-                      <td>
-                        <span
-                          className="flag-badge"
-                          style={{
-                            background: u.status === 'success' ? 'var(--accent-primary-dim)' : 'var(--accent-danger-dim)',
-                            color: u.status === 'success' ? 'var(--accent-primary)' : 'var(--accent-danger)',
-                          }}
-                        >
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="numeric">{u.rows_inserted}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>
-                        {new Date(u.uploaded_at).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const arr = [...uploads];
+                    arr.sort((a, b) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const va = (a as any)[sortKey];
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const vb = (b as any)[sortKey];
+                      
+                      const numA = typeof va === 'number' ? va : 0;
+                      const numB = typeof vb === 'number' ? vb : 0;
+                      
+                      if (sortKey === 'uploaded_at') {
+                        const timeA = new Date(va as string).getTime();
+                        const timeB = new Date(vb as string).getTime();
+                        return sortDir === 'asc' ? timeA - timeB : timeB - timeA;
+                      }
+                      
+                      if (typeof va === 'string' && typeof vb === 'string') {
+                        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+                      }
+                      return sortDir === 'asc' ? numA - numB : numB - numA;
+                    });
+                    
+                    return arr.map(u => (
+                      <tr key={u.id}>
+                        <td>{u.filename}</td>
+                        <td>
+                          <span
+                            className="flag-badge"
+                            style={{
+                              background: u.status === 'success' ? 'var(--accent-primary-dim)' : 'var(--accent-danger-dim)',
+                              color: u.status === 'success' ? 'var(--accent-primary)' : 'var(--accent-danger)',
+                            }}
+                          >
+                            {u.status}
+                          </span>
+                        </td>
+                        <td className="numeric">{u.rows_inserted}</td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          {new Date(u.uploaded_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
