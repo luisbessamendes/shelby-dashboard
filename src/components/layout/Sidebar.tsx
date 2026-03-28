@@ -26,7 +26,14 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-logo">Shelby Dashboard</div>
-        <div className="sidebar-subtitle">Performance Analytics</div>
+        <div className="sidebar-powered">
+          <span>powered by</span>
+          <img 
+            src="/images/seestem-logo.png" 
+            alt="Seestem" 
+            className="powered-logo"
+          />
+        </div>
       </div>
 
       <nav className="sidebar-nav">

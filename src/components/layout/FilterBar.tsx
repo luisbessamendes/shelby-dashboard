@@ -61,29 +61,29 @@ function MultiSelectDropdown({
           top: '100%',
           left: 0,
           marginTop: '4px',
-          background: '#111827', // dark bg
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '8px',
           padding: '8px',
           minWidth: '200px',
           zIndex: 50,
           maxHeight: '300px',
           overflowY: 'auto',
-          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow-lg)',
           display: 'flex',
           flexDirection: 'column',
           gap: '4px'
         }}>
-          <div 
+            <div 
              style={{ 
                padding: '6px 8px', cursor: 'pointer', borderRadius: '4px',
-               color: selectedValues.length === 0 ? '#10b981' : '#fff',
-               background: selectedValues.length === 0 ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+               color: selectedValues.length === 0 ? 'var(--accent-primary)' : 'var(--text-primary)',
+               background: selectedValues.length === 0 ? 'var(--accent-primary-dim)' : 'transparent',
                fontWeight: selectedValues.length === 0 ? 600 : 400
              }}
              onClick={() => { onChange([]); setIsOpen(false); }}
              onMouseEnter={(e) => {
-               if (selectedValues.length !== 0) Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.05)' });
+               if (selectedValues.length !== 0) Object.assign(e.currentTarget.style, { background: 'var(--bg-secondary)' });
              }}
              onMouseLeave={(e) => {
                if (selectedValues.length !== 0) Object.assign(e.currentTarget.style, { background: 'transparent' });
@@ -103,22 +103,22 @@ function MultiSelectDropdown({
                   alignItems: 'center',
                   gap: '8px',
                   borderRadius: '4px',
-                  color: isSelected ? '#10b981' : '#d1d5db',
-                  background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                  color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  background: isSelected ? 'var(--accent-primary-dim)' : 'transparent',
                 }}
                 onClick={() => toggleOption(opt)}
                 onMouseEnter={(e) => {
-                  if (!isSelected) Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.05)', color: '#fff' });
+                  if (!isSelected) Object.assign(e.currentTarget.style, { background: 'var(--bg-secondary)', color: 'var(--text-primary)' });
                 }}
                 onMouseLeave={(e) => {
-                  if (!isSelected) Object.assign(e.currentTarget.style, { background: 'transparent', color: '#d1d5db' });
+                  if (!isSelected) Object.assign(e.currentTarget.style, { background: 'transparent', color: 'var(--text-secondary)' });
                 }}
               >
                 <div style={{
-                  width: '14px', height: '14px', borderRadius: '3px', border: `1px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? '#10b981' : 'transparent'
+                  width: '14px', height: '14px', borderRadius: '3px', border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'var(--border-medium)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', background: isSelected ? 'var(--accent-primary)' : 'transparent'
                 }}>
-                  {isSelected && <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L3.5 6.5L9 1" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  {isSelected && <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L3.5 6.5L9 1" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
                 <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>{opt}</span>
               </div>
