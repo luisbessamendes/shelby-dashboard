@@ -1,3 +1,4 @@
+
 import { getFilteredData } from './analytics-queries';
 import { aggregate, aggregatePerStore } from './calculations';
 import type { FilterState, PeriodBasis, StoreMonthRecord } from './types';
@@ -93,7 +94,7 @@ export async function executeAiTool(name: string, args: any) {
     case 'get_aggregated_metrics': {
       const agg = aggregate(periodData);
       return {
-        label: `${args.concept || 'Portfolio'} - ${args.year}${args.month ? '/' + args.month : ''}`,
+        label: \`\${args.concept || 'Portfolio'} - \${args.year}\${args.month ? '/' + args.month : ''}\`,
         sales: agg.totalSales,
         ebitda: agg.totalEbitda,
         ebitdaPct: agg.ebitdaPct,
@@ -153,6 +154,6 @@ export async function executeAiTool(name: string, args: any) {
     }
 
     default:
-      throw new Error(`Unknown tool: ${name}`);
+      throw new Error(\`Unknown tool: \${name}\`);
   }
 }

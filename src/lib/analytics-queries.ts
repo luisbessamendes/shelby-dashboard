@@ -28,7 +28,7 @@ async function fetchAllRecords(): Promise<StoreMonthRecord[]> {
     .order('month', { ascending: true })
     .limit(100000);
 
-  if (error) throw new Error(`Supabase query failed: ${error.message}`);
+  if (error) throw new Error(\`Supabase query failed: \${error.message}\`);
   return (data as StoreMonthRecord[]) || [];
 }
 
@@ -127,8 +127,8 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
       return a.month - b.month;
     })
     .map(s => {
-      const rPct = (num: number, den: number) => den !== 0 ? `${((num / den) * 100).toFixed(1)}%` : '0%';
-      return `${s.year},${s.month},"${s.store}","${s.concept}","${s.region}",${s.sales.toFixed(0)},${s.ebitda.toFixed(0)},${s.capex.toFixed(0)},${s.fcff.toFixed(0)},${rPct(s.staff, s.sales)},${rPct(s.raw_materials, s.sales)}`;
+      const rPct = (num: number, den: number) => den !== 0 ? \`\${((num / den) * 100).toFixed(1)}%\` : '0%';
+      return \`\${s.year},\${s.month},"\${s.store}","\${s.concept}","\${s.region}",\${s.sales.toFixed(0)},\${s.ebitda.toFixed(0)},\${s.capex.toFixed(0)},\${s.fcff.toFixed(0)},\${rPct(s.staff, s.sales)},\${rPct(s.raw_materials, s.sales)}\`;
     }).join("\n");
   const allStoresMetricsCsv = csvHeader + csvRows;
 
@@ -192,7 +192,7 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
   const topCapexStoreHistories = Array.from(storeGroups.entries())
     .map(([store, recs]) => {
       const history = recs.map(r => ({
-        period: `${r.year}-${String(r.month).padStart(2, '0')}`,
+        period: \`\${r.year}-\${String(r.month).padStart(2, '0')}\`,
         capex: r.capex,
         ebitda: r.ebitda
       })).sort((a, b) => a.period.localeCompare(b.period));
@@ -208,21 +208,21 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
   // Period label
   const basisLabel = filters.periodBasis.toUpperCase();
   const periodLabel = filters.year && filters.month
-    ? `${basisLabel} — ${filters.year}/${String(filters.month).padStart(2, '0')}`
+    ? \`\${basisLabel} — \${filters.year}/\${String(filters.month).padStart(2, '0')}\`
     : 'All available data';
 
   // Filter description
   const parts: string[] = [];
-  if (filters.concepts?.length > 0) parts.push(`Concepts: ${filters.concepts.join(', ')}`);
-  if (filters.regions?.length > 0) parts.push(`Regions: ${filters.regions.join(', ')}`);
-  if (filters.stores?.length > 0) parts.push(`Stores: ${filters.stores.join(', ')}`);
-  if (filters.storeTypes?.length > 0) parts.push(`Types: ${filters.storeTypes.join(', ')}`);
+  if (filters.concepts?.length > 0) parts.push(\`Concepts: \${filters.concepts.join(', ')}\`);
+  if (filters.regions?.length > 0) parts.push(\`Regions: \${filters.regions.join(', ')}\`);
+  if (filters.stores?.length > 0) parts.push(\`Stores: \${filters.stores.join(', ')}\`);
+  if (filters.storeTypes?.length > 0) parts.push(\`Types: \${filters.storeTypes.join(', ')}\`);
   const filterDescription = parts.length > 0 ? parts.join(' | ') : 'Full portfolio (no dimension filters applied)';
 
   // Available periods
   const years = [...new Set(allFilteredData.map(d => d.year))].sort();
   const availablePeriods = years.length > 0
-    ? `Data available from ${years[0]} to ${years[years.length - 1]}`
+    ? \`Data available from \${years[0]} to \${years[years.length - 1]}\`
     : 'No data available';
 
   return {

@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         const name = toolParams.name;
         const args = JSON.parse(toolParams.arguments);
         
-        console.log(`[AI Tool Call] ${name}`, args);
+        console.log(\`[AI Tool Call] \${name}\`, args);
         
         try {
           const result = await executeAiTool(name, args);
