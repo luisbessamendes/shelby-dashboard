@@ -35,7 +35,6 @@ export default function TrendsPage() {
   const trendData = useMemo(() => getMonthlyTrend(filteredData, activeMetric), [filteredData, activeMetric]);
   const ratioData = useMemo(() => getRatioTrend(filteredData, activeRatio), [filteredData, activeRatio]);
 
-  // All metrics for multi-line comparison
   const allAbsData = useMemo(() => {
     const salesT = getMonthlyTrend(filteredData, 'sales');
     const ebitdaT = getMonthlyTrend(filteredData, 'ebitda');
@@ -89,7 +88,6 @@ export default function TrendsPage() {
         <p className="page-description">Monthly performance trends across the portfolio</p>
       </div>
 
-      {/* Absolute metric selector + chart */}
       <div className="chart-container mb-24">
         <div className="chart-title">
           <span>Absolute Metrics Trend</span>
@@ -127,7 +125,6 @@ export default function TrendsPage() {
         </ResponsiveContainer>
       </div>
 
-      {/* Ratio metric selector + chart */}
       <div className="chart-container mb-24">
         <div className="chart-title">
           <span>Ratio Metrics Trend</span>
@@ -159,7 +156,6 @@ export default function TrendsPage() {
         </ResponsiveContainer>
       </div>
 
-      {/* Multi-metric comparison */}
       <div className="chart-grid">
         <div className="chart-container">
           <div className="chart-title">Sales / EBITDA / FCFF Overlay</div>
@@ -188,7 +184,7 @@ export default function TrendsPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
-                formatter={(v: any, name: any) => [\`\${(v as number).toFixed(1)}%\`, name]}
+                formatter={(v: any, name: any) => [`${(v as number).toFixed(1)}%`, name]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -200,7 +196,6 @@ export default function TrendsPage() {
         </div>
       </div>
 
-      {/* Yearly Comparison Table */}
       <TrendYearlyTable 
         data={yearlyComparison} 
         basis={filters.periodBasis} 
@@ -212,10 +207,8 @@ export default function TrendsPage() {
 
 function TrendYearlyTable({ data, basis, month }: { data: any[], basis: string, month: number }) {
   if (data.length === 0) return null;
-
   const latest = data[0];
   const previous = data[1];
-
   const getDelta = (curr: number, prev: number | undefined, isRatio = false) => {
     if (prev === undefined || prev === 0) return null;
     if (isRatio) return curr - prev;
@@ -256,20 +249,20 @@ function TrendYearlyTable({ data, basis, month }: { data: any[], basis: string, 
                 <td className="numeric text-center">{formatCurrency(row.metrics.totalSales)}</td>
                 <td className="numeric text-center">{formatNumber(row.metrics.totalTickets)}</td>
                 <td className="numeric text-center">{formatCurrency(row.metrics.avgTicket)}</td>
-                <td className={\`numeric text-center \${(row.metrics.totalEbitda ?? 0) < 0 ? 'cell-negative' : 'cell-positive'}\`}>
+                <td className={`numeric text-center ${row.metrics.totalEbitda < 0 ? 'cell-negative' : 'cell-positive'}`}>
                   {formatCurrency(row.metrics.totalEbitda)}
                 </td>
-                <td className={\`numeric text-center \${(row.metrics.totalFcff ?? 0) < 0 ? 'cell-negative' : ''}\`}>
+                <td className={`numeric text-center ${row.metrics.totalFcff < 0 ? 'cell-negative' : ''}`}>
                   {formatCurrency(row.metrics.totalFcff)}
                 </td>
-                <td className={\`numeric text-center \${(row.metrics.ebitdaPct ?? 0) < 0 ? 'cell-negative' : 'cell-positive'}\`}>
+                <td className={`numeric text-center ${row.metrics.ebitdaPct < 0 ? 'cell-negative' : 'cell-positive'}`}>
                   {formatPercent(row.metrics.ebitdaPct)}
                 </td>
-                <td className={\`numeric text-center \${(row.metrics.staffPct ?? 0) > 0.3 ? 'cell-warning' : ''}\`}>
+                <td className={`numeric text-center ${row.metrics.staffPct > 0.3 ? 'cell-warning' : ''}`}>
                   {formatPercent(row.metrics.staffPct)}
                 </td>
                 <td className="numeric text-center">{formatPercent(row.metrics.rawMaterialsPct)}</td>
-                <td className={\`numeric text-center \${(row.metrics.storeContributionPct ?? 0) < 0 ? 'cell-negative' : ''}\`}>
+                <td className={`numeric text-center ${row.metrics.storeContributionPct < 0 ? 'cell-negative' : ''}`}>
                   {formatPercent(row.metrics.storeContributionPct)}
                 </td>
               </tr>
@@ -277,27 +270,27 @@ function TrendYearlyTable({ data, basis, month }: { data: any[], basis: string, 
             {latest && previous && (
               <tr style={{ background: 'var(--accent-primary-dim)', borderTop: '2px solid var(--border-glass)' }}>
                 <td style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>Growth / Δ</td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.totalSales, previous.metrics.totalSales)! >= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.totalSales, previous.metrics.totalSales)! >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatTrend(getDelta(latest.metrics.totalSales, previous.metrics.totalSales))}
                 </td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.totalTickets, previous.metrics.totalTickets)! >= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.totalTickets, previous.metrics.totalTickets)! >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatTrend(getDelta(latest.metrics.totalTickets, previous.metrics.totalTickets))}
                 </td>
                 <td className="numeric text-center">—</td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.totalEbitda, previous.metrics.totalEbitda)! >= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.totalEbitda, previous.metrics.totalEbitda)! >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatTrend(getDelta(latest.metrics.totalEbitda, previous.metrics.totalEbitda))}
                 </td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.totalFcff, previous.metrics.totalFcff)! >= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.totalFcff, previous.metrics.totalFcff)! >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatTrend(getDelta(latest.metrics.totalFcff, previous.metrics.totalFcff))}
                 </td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.ebitdaPct, previous.metrics.ebitdaPct, true)! >= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.ebitdaPct, previous.metrics.ebitdaPct, true)! >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatPercentPP(getDelta(latest.metrics.ebitdaPct, previous.metrics.ebitdaPct, true))}
                 </td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.staffPct, previous.metrics.staffPct, true)! <= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.staffPct, previous.metrics.staffPct, true)! <= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatPercentPP(getDelta(latest.metrics.staffPct, previous.metrics.staffPct, true))}
                 </td>
                 <td className="numeric text-center">—</td>
-                <td className={\`numeric text-center \${getDelta(latest.metrics.storeContributionPct, previous.metrics.storeContributionPct, true)! >= 0 ? 'cell-positive' : 'cell-negative'}\`}>
+                <td className={`numeric text-center ${getDelta(latest.metrics.storeContributionPct, previous.metrics.storeContributionPct, true)! >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                   {formatPercentPP(getDelta(latest.metrics.storeContributionPct, previous.metrics.storeContributionPct, true))}
                 </td>
               </tr>

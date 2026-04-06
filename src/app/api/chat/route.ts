@@ -96,7 +96,6 @@ export async function POST(request: NextRequest) {
 
       const message = response.choices[0].message;
 
-      // If there's a final answer, return it
       if (!message.tool_calls || message.tool_calls.length === 0) {
         const latencyMs = Date.now() - startTime;
         return NextResponse.json({
@@ -105,16 +104,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Handle Tool Calls
       openaiMessages.push(message);
 
       for (const toolCall of message.tool_calls) {
-        // Narrow the type manually if needed, but for OpenAI SDK 4.x this is usually fine
         const toolParams = (toolCall as any).function;
         const name = toolParams.name;
         const args = JSON.parse(toolParams.arguments);
         
-        console.log(\`[AI Tool Call] \${name}\`, args);
+        console.log(`[AI Tool Call] ${name}`, args);
         
         try {
           const result = await executeAiTool(name, args);
