@@ -3,9 +3,6 @@ import { getFilteredData } from './analytics-queries';
 import { aggregate, aggregatePerStore } from './calculations';
 import type { FilterState, PeriodBasis, StoreMonthRecord } from './types';
 
-/**
- * TOOL DEFINITIONS for OpenAI
- */
 export const AI_TOOLS = [
   {
     type: 'function',
@@ -62,11 +59,7 @@ export const AI_TOOLS = [
   }
 ];
 
-/**
- * TOOL EXECUTION HANDLERS
- */
 export async function executeAiTool(name: string, args: any) {
-  // Construct a base filter state from tool arguments
   const filters: FilterState = {
     periodBasis: (args.periodBasis as PeriodBasis) || 'monthly',
     year: args.year || null,
@@ -74,18 +67,7 @@ export async function executeAiTool(name: string, args: any) {
     stores: [],
     concepts: args.concept ? [args.concept] : [],
     regions: args.region ? [args.region] : [],
-    storeTypes: [],
-    locations: [],
-    legalEntities: [],
-    ebitdaSign: 'all',
-    fcffSign: 'all',
-    quartile: 'all',
-    salesRange: null,
-    ebitdaPctRange: null,
-    staffPctRange: null,
-    rawMaterialsPctRange: null,
-    ticketsRange: null,
-    avgTicketRange: null
+    storeTypes: [], locations: [], legalEntities: [], ebitdaSign: 'all', fcffSign: 'all', quartile: 'all', salesRange: null, ebitdaPctRange: null, staffPctRange: null, rawMaterialsPctRange: null, ticketsRange: null, avgTicketRange: null
   };
 
   const { periodData, allFilteredData } = await getFilteredData(filters);
@@ -94,48 +76,23 @@ export async function executeAiTool(name: string, args: any) {
     case 'get_aggregated_metrics': {
       const agg = aggregate(periodData);
       return {
-        label: \`\${args.concept || 'Portfolio'} - \${args.year}\${args.month ? '/' + args.month : ''}\`,
-        sales: agg.totalSales,
-        ebitda: agg.totalEbitda,
-        ebitdaPct: agg.ebitdaPct,
-        capex: agg.totalCapex,
-        fcff: agg.totalFcff,
-        storeCount: agg.storeCount,
-        staffPct: agg.staffPct,
-        rawMaterialsPct: agg.rawMaterialsPct,
-        periodBasis: filters.periodBasis
+        label: `${args.concept || 'Portfolio'} - ${args.year}${args.month ? '/' + args.month : ''}`,
+        sales: agg.totalSales, ebitda: agg.totalEbitda, ebitdaPct: agg.ebitdaPct, capex: agg.totalCapex, fcff: agg.totalFcff, storeCount: agg.storeCount, staffPct: agg.staffPct, rawMaterialsPct: agg.rawMaterialsPct, periodBasis: filters.periodBasis
       };
     }
-
     case 'get_monthly_metrics_feed': {
       const yearRecords = allFilteredData.filter((r: StoreMonthRecord) => r.year === args.year);
       const months = Array.from({ length: 12 }, (_, i) => i + 1);
-      
       return months.map(m => {
         const monthRecords = yearRecords.filter((r: StoreMonthRecord) => r.month === m);
         const agg = aggregate(monthRecords);
-        return {
-          month: m,
-          year: args.year,
-          sales: agg.totalSales,
-          ebitda: agg.totalEbitda,
-          ebitdaPct: agg.ebitdaPct,
-          capex: agg.totalCapex,
-          storeCount: agg.storeCount
-        };
+        return { month: m, year: args.year, sales: agg.totalSales, ebitda: agg.totalEbitda, ebitdaPct: agg.ebitdaPct, capex: agg.totalCapex, storeCount: agg.storeCount };
       }).filter(m => m.storeCount > 0);
     }
-
     case 'get_store_rankings': {
       const storeMap = aggregatePerStore(periodData);
       const list = Array.from(storeMap.values());
-      const metricMap: Record<string, string> = {
-        sales: 'totalSales',
-        ebitda: 'totalEbitda',
-        fcff: 'totalFcff',
-        capex: 'totalCapex'
-      };
-      
+      const metricMap: Record<string, string> = { sales: 'totalSales', ebitda: 'totalEbitda', fcff: 'totalFcff', capex: 'totalCapex' };
       const key = metricMap[args.metric] as keyof typeof list[0];
       const limit = args.limit || 10;
       const sorted = list.sort((a, b) => {
@@ -143,17 +100,9 @@ export async function executeAiTool(name: string, args: any) {
         const valB = (b[key] as any) || 0;
         return args.order === 'asc' ? valA - valB : valB - valA;
       });
-
-      return sorted.slice(0, limit).map(s => ({
-        store: s.store,
-        value: s[key],
-        ebitdaPct: s.ebitdaPct,
-        concept: s.concept,
-        region: s.region
-      }));
+      return sorted.slice(0, limit).map(s => ({ store: s.store, value: s[key], ebitdaPct: s.ebitdaPct, concept: s.concept, region: s.region }));
     }
-
     default:
-      throw new Error(\`Unknown tool: \${name}\`);
+      throw new Error(`Unknown tool: ${name}`);
   }
 }
