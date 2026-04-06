@@ -95,7 +95,7 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
     staffPct: safeDivide(totalStaff, totalSales),
     rentsPct: safeDivide(totalRents, totalSales),
     utilitiesPct: safeDivide(totalUtilities, totalSales),
-    maintenancePct: safeDivide(totalBankingCosts, totalSales), // Fixed mapping if needed, or keeping consistent
+    maintenancePct: safeDivide(totalMaintenance, totalSales),
     bankingCostsPct: safeDivide(totalBankingCosts, totalSales),
     vatPct: safeDivide(totalVat, totalSales),
     othersPct: safeDivide(totalOthers, totalSales),
