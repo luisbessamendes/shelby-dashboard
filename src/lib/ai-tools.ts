@@ -2,6 +2,9 @@ import { getFilteredData } from './analytics-queries';
 import { aggregate, aggregatePerStore } from './calculations';
 import type { FilterState, PeriodBasis, StoreMonthRecord } from './types';
 
+/**
+ * TOOL DEFINITIONS for OpenAI
+ */
 export const AI_TOOLS = [
   {
     type: 'function',
@@ -58,7 +61,11 @@ export const AI_TOOLS = [
   }
 ];
 
+/**
+ * TOOL EXECUTION HANDLERS
+ */
 export async function executeAiTool(name: string, args: any) {
+  // Construct a base filter state from tool arguments
   const filters: FilterState = {
     periodBasis: (args.periodBasis as PeriodBasis) || 'monthly',
     year: args.year || null,
@@ -86,7 +93,7 @@ export async function executeAiTool(name: string, args: any) {
     case 'get_aggregated_metrics': {
       const agg = aggregate(periodData);
       return {
-        label: \`\${args.concept || 'Portfolio'} - \${args.year}\${args.month ? '/' + args.month : ''}\`,
+        label: `${args.concept || 'Portfolio'} - ${args.year}${args.month ? '/' + args.month : ''}`,
         sales: agg.totalSales,
         ebitda: agg.totalEbitda,
         ebitdaPct: agg.ebitdaPct,
@@ -146,6 +153,6 @@ export async function executeAiTool(name: string, args: any) {
     }
 
     default:
-      throw new Error(\`Unknown tool: \${name}\`);
+      throw new Error(`Unknown tool: ${name}`);
   }
 }

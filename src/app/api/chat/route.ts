@@ -41,14 +41,14 @@ Structure every answer professionally:
 
 function buildInitialContext(ctx: any): string {
   return `## Current Dashboard Filters
-- **Period**: \${ctx.periodLabel}
-- **Selected Filters**: \${ctx.filterDescription}
-- **Available History**: \${ctx.availablePeriods}
+- **Period**: ${ctx.periodLabel}
+- **Selected Filters**: ${ctx.filterDescription}
+- **Available History**: ${ctx.availablePeriods}
 
 ### Dashboard KPI Summary (Pre-Aggregated for Current Filter)
-- Total Sales: \${ctx.portfolio.totalSales.toLocaleString()}
-- Total EBITDA: \${ctx.portfolio.totalEbitda.toLocaleString()}
-- Store Count: \${ctx.portfolio.storeCount}
+- Total Sales: ${ctx.portfolio.totalSales.toLocaleString()}
+- Total EBITDA: ${ctx.portfolio.totalEbitda.toLocaleString()}
+- Store Count: ${ctx.portfolio.storeCount}
 
 *Note: You have access to tools to fetch any other historical or detailed data needed for deep analysis.*`;
 }
@@ -109,11 +109,12 @@ export async function POST(request: NextRequest) {
       openaiMessages.push(message);
 
       for (const toolCall of message.tool_calls) {
+        // Narrow the type manually if needed, but for OpenAI SDK 4.x this is usually fine
         const toolParams = (toolCall as any).function;
         const name = toolParams.name;
         const args = JSON.parse(toolParams.arguments);
         
-        console.log(\`[AI Tool Call] \${name}\`, args);
+        console.log(`[AI Tool Call] ${name}`, args);
         
         try {
           const result = await executeAiTool(name, args);
