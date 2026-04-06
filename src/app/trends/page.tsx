@@ -196,6 +196,7 @@ export default function TrendsPage() {
         </div>
       </div>
 
+      {/* Yearly Comparison Table */}
       <TrendYearlyTable 
         data={yearlyComparison} 
         basis={filters.periodBasis} 
@@ -207,8 +208,10 @@ export default function TrendsPage() {
 
 function TrendYearlyTable({ data, basis, month }: { data: any[], basis: string, month: number }) {
   if (data.length === 0) return null;
+
   const latest = data[0];
   const previous = data[1];
+
   const getDelta = (curr: number, prev: number | undefined, isRatio = false) => {
     if (prev === undefined || prev === 0) return null;
     if (isRatio) return curr - prev;
@@ -249,20 +252,20 @@ function TrendYearlyTable({ data, basis, month }: { data: any[], basis: string, 
                 <td className="numeric text-center">{formatCurrency(row.metrics.totalSales)}</td>
                 <td className="numeric text-center">{formatNumber(row.metrics.totalTickets)}</td>
                 <td className="numeric text-center">{formatCurrency(row.metrics.avgTicket)}</td>
-                <td className={`numeric text-center ${row.metrics.totalEbitda < 0 ? 'cell-negative' : 'cell-positive'}`}>
+                <td className={`numeric text-center ${(row.metrics.totalEbitda ?? 0) < 0 ? 'cell-negative' : 'cell-positive'}`}>
                   {formatCurrency(row.metrics.totalEbitda)}
                 </td>
-                <td className={`numeric text-center ${row.metrics.totalFcff < 0 ? 'cell-negative' : ''}`}>
+                <td className={`numeric text-center ${(row.metrics.totalFcff ?? 0) < 0 ? 'cell-negative' : ''}`}>
                   {formatCurrency(row.metrics.totalFcff)}
                 </td>
-                <td className={`numeric text-center ${row.metrics.ebitdaPct < 0 ? 'cell-negative' : 'cell-positive'}`}>
+                <td className={`numeric text-center ${(row.metrics.ebitdaPct ?? 0) < 0 ? 'cell-negative' : 'cell-positive'}`}>
                   {formatPercent(row.metrics.ebitdaPct)}
                 </td>
-                <td className={`numeric text-center ${row.metrics.staffPct > 0.3 ? 'cell-warning' : ''}`}>
+                <td className={`numeric text-center ${(row.metrics.staffPct ?? 0) > 0.3 ? 'cell-warning' : ''}`}>
                   {formatPercent(row.metrics.staffPct)}
                 </td>
                 <td className="numeric text-center">{formatPercent(row.metrics.rawMaterialsPct)}</td>
-                <td className={`numeric text-center ${row.metrics.storeContributionPct < 0 ? 'cell-negative' : ''}`}>
+                <td className={`numeric text-center ${(row.metrics.storeContributionPct ?? 0) < 0 ? 'cell-negative' : ''}`}>
                   {formatPercent(row.metrics.storeContributionPct)}
                 </td>
               </tr>
