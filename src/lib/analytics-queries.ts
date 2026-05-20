@@ -207,6 +207,8 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
   if (filters.concepts?.length > 0) parts.push(`Concepts: ${filters.concepts.join(', ')}`);
   if (filters.regions?.length > 0) parts.push(`Regions: ${filters.regions.join(', ')}`);
   if (filters.stores?.length > 0) parts.push(`Stores: ${filters.stores.join(', ')}`);
+  if (filters.locations?.length > 0) parts.push(`Locations: ${filters.locations.join(', ')}`);
+  if (filters.legalEntities?.length > 0) parts.push(`Legal Entities: ${filters.legalEntities.join(', ')}`);
   if (filters.storeTypes?.length > 0) parts.push(`Types: ${filters.storeTypes.join(', ')}`);
   const filterDescription = parts.length > 0 ? parts.join(' | ') : 'Full portfolio (no dimension filters applied)';
 

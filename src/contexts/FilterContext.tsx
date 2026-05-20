@@ -47,6 +47,8 @@ const defaultFilters: FilterState = {
 
 const FilterContext = createContext<FilterContextValue | null>(null);
 
+type DimensionFilterKey = 'stores' | 'concepts' | 'regions' | 'storeTypes' | 'locations' | 'legalEntities';
+
 export function FilterProvider({ children }: { children: React.ReactNode }) {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [allData, setAllData] = useState<StoreMonthRecord[]>([]);
@@ -91,44 +93,56 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
 
   // Extract available dimension values (cascading)
   const availableYears = React.useMemo(() => [...new Set(allData.map(d => d.year))].sort(), [allData]);
-  const availableLocations = React.useMemo(() => [...new Set(allData.map(d => d.location))].sort(), [allData]);
-  const availableLegalEntities = React.useMemo(() => [...new Set(allData.map(d => d.legal_entity))].sort(), [allData]);
+
+  const matchesDimensionFilters = React.useCallback((d: StoreMonthRecord, exclude: DimensionFilterKey) => (
+    (exclude === 'stores' || filters.stores.length === 0 || filters.stores.includes(d.store)) &&
+    (exclude === 'concepts' || filters.concepts.length === 0 || filters.concepts.includes(d.concept)) &&
+    (exclude === 'regions' || filters.regions.length === 0 || filters.regions.includes(d.region)) &&
+    (exclude === 'storeTypes' || filters.storeTypes.length === 0 || filters.storeTypes.includes(d.store_type)) &&
+    (exclude === 'locations' || filters.locations.length === 0 || filters.locations.includes(d.location)) &&
+    (exclude === 'legalEntities' || filters.legalEntities.length === 0 || filters.legalEntities.includes(d.legal_entity))
+  ), [
+    filters.stores,
+    filters.concepts,
+    filters.regions,
+    filters.storeTypes,
+    filters.locations,
+    filters.legalEntities,
+  ]);
+
+  const uniqueSorted = React.useCallback((values: string[]) => (
+    [...new Set(values.filter(Boolean))].sort()
+  ), []);
 
   const availableStores = React.useMemo(() => {
-    const valid = allData.filter(d => 
-      (filters.concepts.length === 0 || filters.concepts.includes(d.concept)) &&
-      (filters.regions.length === 0 || filters.regions.includes(d.region)) &&
-      (filters.storeTypes.length === 0 || filters.storeTypes.includes(d.store_type))
-    );
-    return [...new Set(valid.map(d => d.store))].sort();
-  }, [allData, filters.concepts, filters.regions, filters.storeTypes]);
+    const valid = allData.filter(d => matchesDimensionFilters(d, 'stores'));
+    return uniqueSorted(valid.map(d => d.store));
+  }, [allData, matchesDimensionFilters, uniqueSorted]);
 
   const availableConcepts = React.useMemo(() => {
-    const valid = allData.filter(d => 
-      (filters.stores.length === 0 || filters.stores.includes(d.store)) &&
-      (filters.regions.length === 0 || filters.regions.includes(d.region)) &&
-      (filters.storeTypes.length === 0 || filters.storeTypes.includes(d.store_type))
-    );
-    return [...new Set(valid.map(d => d.concept))].sort();
-  }, [allData, filters.stores, filters.regions, filters.storeTypes]);
+    const valid = allData.filter(d => matchesDimensionFilters(d, 'concepts'));
+    return uniqueSorted(valid.map(d => d.concept));
+  }, [allData, matchesDimensionFilters, uniqueSorted]);
 
   const availableRegions = React.useMemo(() => {
-    const valid = allData.filter(d => 
-      (filters.stores.length === 0 || filters.stores.includes(d.store)) &&
-      (filters.concepts.length === 0 || filters.concepts.includes(d.concept)) &&
-      (filters.storeTypes.length === 0 || filters.storeTypes.includes(d.store_type))
-    );
-    return [...new Set(valid.map(d => d.region))].sort();
-  }, [allData, filters.stores, filters.concepts, filters.storeTypes]);
+    const valid = allData.filter(d => matchesDimensionFilters(d, 'regions'));
+    return uniqueSorted(valid.map(d => d.region));
+  }, [allData, matchesDimensionFilters, uniqueSorted]);
 
   const availableStoreTypes = React.useMemo(() => {
-    const valid = allData.filter(d => 
-      (filters.stores.length === 0 || filters.stores.includes(d.store)) &&
-      (filters.concepts.length === 0 || filters.concepts.includes(d.concept)) &&
-      (filters.regions.length === 0 || filters.regions.includes(d.region))
-    );
-    return [...new Set(valid.map(d => d.store_type))].sort();
-  }, [allData, filters.stores, filters.concepts, filters.regions]);
+    const valid = allData.filter(d => matchesDimensionFilters(d, 'storeTypes'));
+    return uniqueSorted(valid.map(d => d.store_type));
+  }, [allData, matchesDimensionFilters, uniqueSorted]);
+
+  const availableLocations = React.useMemo(() => {
+    const valid = allData.filter(d => matchesDimensionFilters(d, 'locations'));
+    return uniqueSorted(valid.map(d => d.location));
+  }, [allData, matchesDimensionFilters, uniqueSorted]);
+
+  const availableLegalEntities = React.useMemo(() => {
+    const valid = allData.filter(d => matchesDimensionFilters(d, 'legalEntities'));
+    return uniqueSorted(valid.map(d => d.legal_entity));
+  }, [allData, matchesDimensionFilters, uniqueSorted]);
 
   // Apply filters to all data
   const filteredData = React.useMemo(() => {
