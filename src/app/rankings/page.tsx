@@ -25,33 +25,33 @@ export default function RankingsPage() {
   }, [periodData]);
 
   // Sort logic
-  const salesSorted = useMemo(() => {
-    return [...storeAggs].sort((a, b) => b.totalSales - a.totalSales);
+  const turnoverSorted = useMemo(() => {
+    return [...storeAggs].sort((a, b) => b.totalTurnover - a.totalTurnover);
   }, [storeAggs]);
 
   const ebitdaPctSorted = useMemo(() => {
-    // Only sort stores that have significant sales to avoid division by near-zero anomalies
-    const valid = storeAggs.filter(s => s.totalSales > 1000);
+    // Only sort stores that have significant turnover to avoid division by near-zero anomalies
+    const valid = storeAggs.filter(s => s.totalTurnover > 1000);
     return valid.sort((a, b) => (b.ebitdaPct ?? 0) - (a.ebitdaPct ?? 0));
   }, [storeAggs]);
 
   // KPIs
-  const topSalesStore = salesSorted[0];
-  const bottomSalesStore = salesSorted[salesSorted.length - 1];
+  const topTurnoverStore = turnoverSorted[0];
+  const bottomTurnoverStore = turnoverSorted[turnoverSorted.length - 1];
   const topEbitdaStore = ebitdaPctSorted[0];
   const bottomEbitdaStore = ebitdaPctSorted[ebitdaPctSorted.length - 1];
 
   // Top / Bottom 10s
-  const top10Sales = salesSorted.slice(0, 10);
-  const bottom10Sales = salesSorted.slice(-10).reverse();
+  const top10Turnover = turnoverSorted.slice(0, 10);
+  const bottom10Turnover = turnoverSorted.slice(-10).reverse();
   const top10Ebitda = ebitdaPctSorted.slice(0, 10);
   const bottom10Ebitda = ebitdaPctSorted.slice(-10).reverse();
 
   // Scatters
-  const salesVsEbitda = useMemo(
+  const turnoverVsEbitda = useMemo(
     () => storeAggs.map((s, i) => ({
       name: s.store,
-      x: s.totalSales,
+      x: s.totalTurnover,
       y: (s.ebitdaPct ?? 0) * 100,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
@@ -89,16 +89,16 @@ export default function RankingsPage() {
 
       <div className="kpi-grid">
         <KPICard 
-          label="Top Store (Sales)" 
-          value={topSalesStore?.totalSales ?? 0} 
+          label="Top Store (Turnover)" 
+          value={topTurnoverStore?.totalTurnover ?? 0} 
           format="currency" 
-          icon={`🥇 ${topSalesStore?.store ?? ''}`} 
+          icon={`🥇 ${topTurnoverStore?.store ?? ''}`} 
         />
         <KPICard 
-          label="Bottom Store (Sales)" 
-          value={bottomSalesStore?.totalSales ?? 0} 
+          label="Bottom Store (Turnover)" 
+          value={bottomTurnoverStore?.totalTurnover ?? 0} 
           format="currency" 
-          icon={`⚠️ ${bottomSalesStore?.store ?? ''}`} 
+          icon={`⚠️ ${bottomTurnoverStore?.store ?? ''}`} 
         />
         <KPICard 
           label="Top Store (EBITDA %)" 
@@ -114,12 +114,12 @@ export default function RankingsPage() {
         />
       </div>
 
-      {/* Sales Rankings */}
+      {/* Turnover Rankings */}
       <div className="chart-grid">
         <div className="chart-container">
-          <div className="chart-title">Top 10 Stores by Sales</div>
+          <div className="chart-title">Top 10 Stores by Turnover</div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={top10Sales} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={top10Turnover} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(255,255,255,0.05)" />
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
@@ -132,22 +132,22 @@ export default function RankingsPage() {
                     return (
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.store}</div>
-                        <div style={{ color: '#3b82f6' }}>Sales: {formatCurrency(data.totalSales)}</div>
+                        <div style={{ color: '#3b82f6' }}>Turnover: {formatCurrency(data.totalTurnover)}</div>
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Bar dataKey="totalSales" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="totalTurnover" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="chart-container">
-          <div className="chart-title">Bottom 10 Stores by Sales</div>
+          <div className="chart-title">Bottom 10 Stores by Turnover</div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={bottom10Sales} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={bottom10Turnover} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(255,255,255,0.05)" />
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <YAxis type="category" dataKey="store" width={140} tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.8)' }} />
@@ -160,14 +160,14 @@ export default function RankingsPage() {
                     return (
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.store}</div>
-                        <div style={{ color: '#ef4444' }}>Sales: {formatCurrency(data.totalSales)}</div>
+                        <div style={{ color: '#ef4444' }}>Turnover: {formatCurrency(data.totalTurnover)}</div>
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Bar dataKey="totalSales" fill="#ef4444" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="totalTurnover" fill="#ef4444" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -247,7 +247,7 @@ export default function RankingsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis type="number" dataKey="x" name="Sales" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
+              <XAxis type="number" dataKey="x" name="Turnover" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -257,7 +257,7 @@ export default function RankingsPage() {
                     return (
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>Sales: {formatCurrency(data.x)}</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>Turnover: {formatCurrency(data.x)}</div>
                         <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA: {data.y.toFixed(1)}%</div>
                       </div>
                     );
@@ -265,8 +265,8 @@ export default function RankingsPage() {
                   return null;
                 }}
               />
-              <Scatter data={salesVsEbitda}>
-                {salesVsEbitda.map((entry, idx) => (
+              <Scatter data={turnoverVsEbitda}>
+                {turnoverVsEbitda.map((entry, idx) => (
                   <Cell key={idx} fill={entry.fill} fillOpacity={0.7} />
                 ))}
               </Scatter>

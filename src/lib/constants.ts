@@ -26,6 +26,8 @@ export const MONTH_FULL_NAMES: Record<number, string> = {
 /** Column mapping from Excel header → database field */
 export const EXCEL_COLUMN_MAP: Record<string, string> = {
   'Store': 'store',
+  'Code': 'code',
+  'CODE': 'code',
   'Concept': 'concept',
   'Region': 'region',
   'Type of Store': 'store_type',
@@ -36,6 +38,7 @@ export const EXCEL_COLUMN_MAP: Record<string, string> = {
   'Tickets': 'tickets',
   'Average Ticket': 'avg_ticket',
   'Sales': 'sales',
+  'Turnover': 'turnover',
   'Raw Materials': 'raw_materials',
   'Staff': 'staff',
   'Rents': 'rents',
@@ -71,7 +74,7 @@ export const SKIP_COLUMNS = new Set([
 
 /** Numeric fields in the database (non-dimension) */
 export const NUMERIC_FIELDS = [
-  'tickets', 'avg_ticket', 'sales', 'raw_materials', 'staff',
+  'tickets', 'avg_ticket', 'sales', 'turnover', 'raw_materials', 'staff',
   'rents', 'utilities', 'maintenance', 'banking_costs', 'vat',
   'others', 'store_contribution', 'admin_costs', 'ebitda',
   'capex', 'cit', 'fcff',

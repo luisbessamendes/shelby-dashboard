@@ -141,6 +141,7 @@ export default function FilterBar() {
     availableRegions,
     availableStoreTypes,
     availableLocations,
+    availableLegalEntities,
   } = useFilters();
 
   const periodOptions: { value: PeriodBasis; label: string }[] = [
@@ -226,6 +227,14 @@ export default function FilterBar() {
         options={availableLocations}
         selectedValues={filters.locations}
         onChange={(vals) => updateFilter('locations', vals)}
+      />
+
+      {/* Legal Entity */}
+      <MultiSelectDropdown
+        label="Legal Entity"
+        options={availableLegalEntities}
+        selectedValues={filters.legalEntities}
+        onChange={(vals) => updateFilter('legalEntities', vals)}
       />
 
       {/* Store Type */}

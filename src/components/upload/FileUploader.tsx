@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { parseExcelFile } from '@/lib/excel-parser';
 import { supabase } from '@/lib/supabase';
 import { useFilters } from '@/contexts/FilterContext';
@@ -178,12 +178,15 @@ export default function FileUploader() {
                 <thead>
                   <tr>
                     <th className={thClass('store')} onClick={() => handleSort('store')}>Store {sortKey === 'store' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('code')} onClick={() => handleSort('code')}>Code {sortKey === 'code' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept {sortKey === 'concept' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('region')} onClick={() => handleSort('region')}>Region {sortKey === 'region' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type {sortKey === 'store_type' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('year')} onClick={() => handleSort('year')}>Year {sortKey === 'year' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('month')} onClick={() => handleSort('month')}>Month {sortKey === 'month' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('sales')} onClick={() => handleSort('sales')}>Sales {sortKey === 'sales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('vat')} onClick={() => handleSort('vat')}>VAT {sortKey === 'vat' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('turnover')} onClick={() => handleSort('turnover')}>Turnover {sortKey === 'turnover' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('ebitda')} onClick={() => handleSort('ebitda')}>EBITDA {sortKey === 'ebitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('fcff')} onClick={() => handleSort('fcff')}>FCFF {sortKey === 'fcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                   </tr>
@@ -210,12 +213,15 @@ export default function FileUploader() {
                   })().map((r, i) => (
                     <tr key={i}>
                       <td>{r.store}</td>
+                      <td>{r.code}</td>
                       <td>{r.concept}</td>
                       <td>{r.region}</td>
                       <td>{r.store_type}</td>
                       <td className="numeric">{r.year}</td>
                       <td className="numeric">{r.month}</td>
                       <td className="numeric">{r.sales?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                      <td className="numeric">{r.vat?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                      <td className="numeric">{r.turnover?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
                       <td className={`numeric ${r.ebitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                         {r.ebitda?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                       </td>

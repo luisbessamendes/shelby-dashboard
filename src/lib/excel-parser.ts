@@ -68,7 +68,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
           continue;
         }
         record[dbField] = monthNum;
-      } else if (['store', 'concept', 'region', 'store_type', 'location', 'legal_entity'].includes(dbField)) {
+      } else if (['store', 'code', 'concept', 'region', 'store_type', 'location', 'legal_entity'].includes(dbField)) {
         record[dbField] = String(value ?? '').trim();
       } else {
         // Numeric field
@@ -89,6 +89,14 @@ export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
       continue;
     }
 
+    // Newer templates provide Turnover. Older templates do not, so derive it.
+    const sales = Number(record.sales ?? 0);
+    const vat = Number(record.vat ?? 0);
+    const turnover = Number(record.turnover);
+    if (!Number.isFinite(turnover) || (turnover === 0 && sales - vat !== 0)) {
+      record.turnover = sales - vat;
+    }
+
     // Auto-correct corrupted spreadsheet formulas
     // If Tickets > Sales, it implies Avg Ticket < €1, which is practically impossible.
     // This usually means the spreadsheet formula mistakenly did: Tickets = Sales * AvgTicket
@@ -103,6 +111,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
     }
 
     // Fill defaults for missing optional fields
+    record.code = record.code || '';
     record.concept = record.concept || 'Unknown';
     record.region = record.region || 'Unknown';
     record.store_type = record.store_type || 'Unknown';

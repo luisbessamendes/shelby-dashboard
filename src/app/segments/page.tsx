@@ -64,11 +64,11 @@ export default function SegmentsPage() {
     return arr;
   }, [periodData, dimension, sortKey, sortDir]);
 
-  // Bubble chart data: Sales vs EBITDA %, bubble size = store count
+  // Bubble chart data: Turnover vs EBITDA %, bubble size = store count
   const bubbleData = useMemo(
     () => segmentData.map((s, i) => ({
       name: s.name,
-      x: s.totalSales,
+      x: s.totalTurnover,
       y: (s.ebitdaPct ?? 0) * 100,
       z: s.storeCount,
       fill: CHART_COLORS[i % CHART_COLORS.length],
@@ -120,7 +120,7 @@ export default function SegmentsPage() {
               <tr>
                 <th className={thClass('name')} onClick={() => handleSort('name')}>{DIMENSIONS.find(d => d.value === dimension)?.label} {sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('storeCount')} onClick={() => handleSort('storeCount')}># Stores {sortKey === 'storeCount' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Sales {sortKey === 'totalSales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalTurnover')} onClick={() => handleSort('totalTurnover')}>Turnover {sortKey === 'totalTurnover' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets {sortKey === 'totalTickets' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -137,7 +137,7 @@ export default function SegmentsPage() {
                 <tr key={s.name}>
                   <td style={{ fontWeight: 500 }}>{s.name}</td>
                   <td className="numeric">{s.storeCount}</td>
-                  <td className="numeric">{formatCurrency(s.totalSales)}</td>
+                  <td className="numeric">{formatCurrency(s.totalTurnover)}</td>
                   <td className="numeric">{formatCurrency(s.totalTickets)}</td>
                   <td className="numeric">{formatCurrency(s.avgTicket)}</td>
                   <td className="numeric">{formatPercent(s.rawMaterialsPct)}</td>
@@ -178,16 +178,16 @@ export default function SegmentsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Sales vs EBITDA % Bubble */}
+        {/* Turnover vs EBITDA % Bubble */}
         <div className="chart-container">
-          <div className="chart-title">Sales vs EBITDA % (bubble = # stores)</div>
+          <div className="chart-title">Turnover vs EBITDA % (bubble = # stores)</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 type="number"
                 dataKey="x"
-                name="Sales"
+                name="Turnover"
                 tickFormatter={(v: number) => formatCompact(v)}
                 tick={{ fontSize: 10 }}
               />
@@ -215,7 +215,7 @@ export default function SegmentsPage() {
                           {data.name}
                         </div>
                         <div style={{ color: '#fff', fontSize: '13px' }}>
-                          <span style={{ opacity: 0.7 }}>Sales:</span> {formatCurrency(data.x)}
+                          <span style={{ opacity: 0.7 }}>Turnover:</span> {formatCurrency(data.x)}
                         </div>
                         <div style={{ color: '#fff', fontSize: '13px' }}>
                           <span style={{ opacity: 0.7 }}>EBITDA %:</span> {data.y.toFixed(1)}%

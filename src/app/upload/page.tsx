@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import FileUploader from '@/components/upload/FileUploader';
 import { supabase } from '@/lib/supabase';
@@ -164,4 +164,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
