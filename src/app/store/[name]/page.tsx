@@ -72,33 +72,33 @@ export default function StoreDetailPage() {
   const formatAgg = useMemo(() => aggregate(formatData), [formatData]);
 
   // Trends (store)
-  const salesTrend = useMemo(() => getMonthlyTrend(storeAllData, 'sales'), [storeAllData]);
+  const turnoverTrend = useMemo(() => getMonthlyTrend(storeAllData, 'turnover'), [storeAllData]);
   const ebitdaTrend = useMemo(() => getMonthlyTrend(storeAllData, 'ebitda'), [storeAllData]);
 
   // Cost structure
   const costStructure = useMemo(() => {
-    if (storeAgg.totalSales === 0) return [];
+    if (storeAgg.totalTurnover === 0) return [];
     return [
       { name: 'Raw Mat.', value: (storeAgg.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
       { name: 'Staff', value: (storeAgg.staffPct ?? 0) * 100, fill: '#f59e0b' },
       { name: 'Rents', value: (storeAgg.rentsPct ?? 0) * 100, fill: '#8b5cf6' },
       { name: 'Utilities', value: (storeAgg.utilitiesPct ?? 0) * 100, fill: '#06b6d4' },
+      { name: 'Maint.', value: (storeAgg.maintenancePct ?? 0) * 100, fill: '#6b7280' },
       { name: 'Banking', value: (storeAgg.bankingCostsPct ?? 0) * 100, fill: '#3b82f6' },
-      { name: 'VAT', value: (storeAgg.vatPct ?? 0) * 100, fill: '#ec4899' },
-      { name: 'Others', value: (storeAgg.othersPct ?? 0) * 100 + (storeAgg.maintenancePct ?? 0) * 100, fill: '#6b7280' },
+      { name: 'Others', value: (storeAgg.othersPct ?? 0) * 100, fill: '#9ca3af' },
     ];
   }, [storeAgg]);
 
   // Diagnostic flags
   const diagnostics = useMemo(() => {
     const flags = [];
-    if ((storeAgg.staffPct ?? 0) > 0.30) flags.push({ label: 'High Labor Burden', severity: 'high' as const, desc: `Staff at ${formatPercent(storeAgg.staffPct)} of sales (>30%)` });
-    if ((storeAgg.rawMaterialsPct ?? 0) > 0.35) flags.push({ label: 'High Food Cost', severity: 'high' as const, desc: `Raw materials at ${formatPercent(storeAgg.rawMaterialsPct)} of sales (>35%)` });
-    if ((storeAgg.rentsPct ?? 0) > 0.15) flags.push({ label: 'High Rent Burden', severity: 'medium' as const, desc: `Rents at ${formatPercent(storeAgg.rentsPct)} of sales (>15%)` });
+    if ((storeAgg.staffPct ?? 0) > 0.30) flags.push({ label: 'High Labor Burden', severity: 'high' as const, desc: `Staff at ${formatPercent(storeAgg.staffPct)} of turnover (>30%)` });
+    if ((storeAgg.rawMaterialsPct ?? 0) > 0.35) flags.push({ label: 'High Food Cost', severity: 'high' as const, desc: `Raw materials at ${formatPercent(storeAgg.rawMaterialsPct)} of turnover (>35%)` });
+    if ((storeAgg.rentsPct ?? 0) > 0.15) flags.push({ label: 'High Rent Burden', severity: 'medium' as const, desc: `Rents at ${formatPercent(storeAgg.rentsPct)} of turnover (>15%)` });
     if (storeAgg.totalEbitda > 0 && storeAgg.totalFcff < 0) flags.push({ label: 'Weak Cash Conversion', severity: 'high' as const, desc: 'Positive EBITDA but negative FCFF' });
     if (storeAgg.totalEbitda < 0) flags.push({ label: 'EBITDA-Negative', severity: 'high' as const, desc: `EBITDA: ${formatCurrency(storeAgg.totalEbitda)}` });
     if (storeAgg.avgTicket < (portfolioAgg.avgTicket * 0.7)) flags.push({ label: 'Low Ticket Monetization', severity: 'medium' as const, desc: `Avg ticket €${storeAgg.avgTicket.toFixed(2)} vs portfolio €${portfolioAgg.avgTicket.toFixed(2)}` });
-    if ((storeAgg.adminCostsPct ?? 0) > 0.05) flags.push({ label: 'Overhead Drag', severity: 'low' as const, desc: `Admin costs at ${formatPercent(storeAgg.adminCostsPct)} of sales` });
+    if ((storeAgg.adminCostsPct ?? 0) > 0.05) flags.push({ label: 'Overhead Drag', severity: 'low' as const, desc: `Admin costs at ${formatPercent(storeAgg.adminCostsPct)} of turnover` });
     return flags;
   }, [storeAgg, portfolioAgg]);
 
@@ -121,6 +121,7 @@ export default function StoreDetailPage() {
         <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
           {[
             { label: 'Concept', value: storeMeta.concept },
+            { label: 'Code', value: storeMeta.code },
             { label: 'Region', value: storeMeta.region },
             { label: 'Type', value: storeMeta.store_type },
             { label: 'Location', value: storeMeta.location },
@@ -135,7 +136,8 @@ export default function StoreDetailPage() {
 
       {/* KPIs */}
       <div className="kpi-grid">
-        <KPICard label="Sales" value={storeAgg.totalSales} format="compact" />
+        <KPICard label="Turnover" value={storeAgg.totalTurnover} format="compact" />
+        <KPICard label="Gross Sales" value={storeAgg.totalSales} format="compact" />
         <KPICard label="Tickets" value={storeAgg.totalTickets} format="number" />
         <KPICard label="Avg Ticket" value={storeAgg.avgTicket} format="currency" />
         <KPICard label="Raw Materials %" value={storeAgg.rawMaterialsPct} format="percent" />
@@ -221,7 +223,7 @@ export default function StoreDetailPage() {
 
         {/* Cost Structure */}
         <div className="chart-container">
-          <div className="chart-title">Cost Structure (% of Sales)</div>
+          <div className="chart-title">Cost Structure (% of Turnover)</div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={costStructure}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -245,15 +247,15 @@ export default function StoreDetailPage() {
       {/* Trend Charts */}
       <div className="chart-grid">
         <div className="chart-container">
-          <div className="chart-title">Sales Trend</div>
+          <div className="chart-title">Turnover Trend</div>
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={salesTrend}>
+            <LineChart data={turnoverTrend}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any) => [formatCurrency(v), 'Sales']}
+                formatter={(v: any) => [formatCurrency(v), 'Turnover']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               /><Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />

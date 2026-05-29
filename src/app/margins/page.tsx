@@ -25,9 +25,9 @@ export default function MarginsPage() {
     return Array.from(map.values());
   }, [periodData]);
 
-  // Cost Stack (% of Sales)
+  // Cost Stack (% of Turnover)
   const costStack = useMemo(() => {
-    if (portfolio.totalSales === 0) return [];
+    if (portfolio.totalTurnover === 0) return [];
     return [
       { name: 'Raw Mat.', value: (portfolio.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
       { name: 'Staff', value: (portfolio.staffPct ?? 0) * 100, fill: '#f59e0b' },
@@ -35,17 +35,16 @@ export default function MarginsPage() {
       { name: 'Utilities', value: (portfolio.utilitiesPct ?? 0) * 100, fill: '#06b6d4' },
       { name: 'Maint.', value: (portfolio.maintenancePct ?? 0) * 100, fill: '#6b7280' },
       { name: 'Banking', value: (portfolio.bankingCostsPct ?? 0) * 100, fill: '#3b82f6' },
-      { name: 'VAT', value: (portfolio.vatPct ?? 0) * 100, fill: '#ec4899' },
       { name: 'Others', value: (portfolio.othersPct ?? 0) * 100, fill: '#9ca3af' },
       { name: 'Admin', value: (portfolio.adminCostsPct ?? 0) * 100, fill: '#a78bfa' },
     ];
   }, [portfolio]);
 
-  // Scatter data: Sales vs EBITDA %
-  const salesVsEbitda = useMemo(
+  // Scatter data: Turnover vs EBITDA %
+  const turnoverVsEbitda = useMemo(
     () => storeAggs.map((s, i) => ({
       name: s.store,
-      x: s.totalSales,
+      x: s.totalTurnover,
       y: (s.ebitdaPct ?? 0) * 100,
       concept: 'concept' in s ? String((s as { concept?: string }).concept) : '',
       fill: CHART_COLORS[i % CHART_COLORS.length],
@@ -91,10 +90,12 @@ export default function MarginsPage() {
     let current = 0;
     const items = [
       { name: 'Sales', raw: portfolio.totalSales, color: '#3b82f6' },
+      { name: '- VAT', raw: -portfolio.totalVat, color: '#ef4444' },
+      { name: '= Turnover', raw: portfolio.totalTurnover, isTotal: true, color: '#06b6d4' },
       { name: '- Raw Mat', raw: -portfolio.totalRawMaterials, color: '#ef4444' },
       { name: '- Staff', raw: -portfolio.totalStaff, color: '#ef4444' },
       { name: '- Rents', raw: -portfolio.totalRents, color: '#ef4444' },
-      { name: '- Oth. Costs', raw: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalVat + portfolio.totalOthers), color: '#ef4444' },
+      { name: '- Oth. Costs', raw: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalOthers), color: '#ef4444' },
       { name: '= EBITDA', raw: portfolio.totalEbitda, isTotal: true, color: portfolio.totalEbitda >= 0 ? '#10b981' : '#ef4444' },
       { name: '- CPX/CIT', raw: -(portfolio.totalCapex + portfolio.totalCit), color: '#f59e0b' },
       { name: '= FCFF', raw: portfolio.totalFcff, isTotal: true, color: portfolio.totalFcff >= 0 ? '#10b981' : '#ef4444' },
@@ -147,7 +148,7 @@ export default function MarginsPage() {
       <div className="chart-grid">
         {/* Cost Stack */}
         <div className="chart-container">
-          <div className="chart-title">P&L Cost Structure (% of Sales)</div>
+          <div className="chart-title">P&L Cost Structure (% of Turnover)</div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={costStack}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -170,7 +171,7 @@ export default function MarginsPage() {
 
         {/* Waterfall */}
         <div className="chart-container">
-          <div className="chart-title">Sales → EBITDA → FCFF Waterfall</div>
+          <div className="chart-title">Sales to VAT to Turnover to FCFF Waterfall</div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={waterfallData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -208,13 +209,13 @@ export default function MarginsPage() {
 
       {/* Scatter plots */}
       <div className="chart-grid">
-        {/* Sales vs EBITDA % */}
+        {/* Turnover vs EBITDA % */}
         <div className="chart-container">
-          <div className="chart-title">Sales vs EBITDA % (per store)</div>
+          <div className="chart-title">Turnover vs EBITDA % (per store)</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey="x" name="Sales" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
+              <XAxis type="number" dataKey="x" name="Turnover" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 content={({ active, payload }) => {
@@ -228,7 +229,7 @@ export default function MarginsPage() {
                         borderRadius: '8px' 
                       }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>Sales: {formatCurrency(data.x)}</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>Turnover: {formatCurrency(data.x)}</div>
                         <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
@@ -236,8 +237,8 @@ export default function MarginsPage() {
                   return null;
                 }}
               />
-              <Scatter data={salesVsEbitda}>
-                {salesVsEbitda.map((entry, idx) => (
+              <Scatter data={turnoverVsEbitda}>
+                {turnoverVsEbitda.map((entry, idx) => (
                   <Cell key={idx} fill={entry.fill} fillOpacity={0.7} />
                 ))}
               </Scatter>

@@ -30,6 +30,7 @@ export default function PerformancePage() {
       const q = search.toLowerCase();
       rows = rows.filter(r =>
         r.store.toLowerCase().includes(q) ||
+        r.code.toLowerCase().includes(q) ||
         r.concept.toLowerCase().includes(q) ||
         r.region.toLowerCase().includes(q)
       );
@@ -62,14 +63,17 @@ export default function PerformancePage() {
   const thClass = (key: string) => `${sortKey === key ? 'sorted' : ''}`;
 
   const exportCSV = () => {
-    const headers = ['Store', 'Concept', 'Region', 'Type', 'Location', 'Legal Entity', 'Sales', 'Tickets', 'Avg Ticket', 'Raw Mat', 'Raw Mat %', 'Staff', 'Staff %', 'Rents', 'Rents %', 'Utilities', 'Maintenance', 'Banking', 'VAT', 'Others', 'Store Contr.', 'SC %', 'Admin', 'Admin %', 'EBITDA', 'EBITDA %', 'CAPEX', 'CIT', 'FCFF', 'FCFF %'];
+    const headers = ['Store', 'Code', 'Concept', 'Region', 'Type', 'Location', 'Legal Entity', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Raw Mat', 'Raw Mat %', 'Staff', 'Staff %', 'Rents', 'Rents %', 'Utilities', 'Utilities %', 'Maintenance', 'Maintenance %', 'Banking', 'Banking %', 'Others', 'Others %', 'Store Contr.', 'SC %', 'Admin', 'Admin %', 'EBITDA', 'EBITDA %', 'CAPEX', 'CIT', 'FCFF', 'FCFF %'];
     const csvRows = storeRows.map(r => [
-      r.store, r.concept, r.region, r.store_type, r.location, r.legal_entity,
-      r.totalSales, r.totalTickets, r.avgTicket,
+      r.store, r.code, r.concept, r.region, r.store_type, r.location, r.legal_entity,
+      r.totalSales, r.totalVat, r.totalTurnover, r.totalTickets, r.avgTicket,
       r.totalRawMaterials, r.rawMaterialsPct,
       r.totalStaff, r.staffPct,
       r.totalRents, r.rentsPct,
-      r.totalUtilities, r.totalMaintenance, r.totalBankingCosts, r.totalVat, r.totalOthers,
+      r.totalUtilities, r.utilitiesPct,
+      r.totalMaintenance, r.maintenancePct,
+      r.totalBankingCosts, r.bankingCostsPct,
+      r.totalOthers, r.othersPct,
       r.totalStoreContribution, r.storeContributionPct,
       r.totalAdminCosts, r.adminCostsPct,
       r.totalEbitda, r.ebitdaPct,
@@ -112,7 +116,7 @@ export default function PerformancePage() {
           <input
             className="data-table-search"
             type="text"
-            placeholder="Search stores, concepts, regions..."
+            placeholder="Search stores, codes, concepts, regions..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -126,15 +130,22 @@ export default function PerformancePage() {
             <thead>
               <tr>
                 <th className={thClass('store')} onClick={() => handleSort('store')}>Store {sortKey === 'store' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('code')} onClick={() => handleSort('code')}>Code {sortKey === 'code' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept {sortKey === 'concept' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('region')} onClick={() => handleSort('region')}>Region {sortKey === 'region' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type {sortKey === 'store_type' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Sales {sortKey === 'totalSales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Gross Sales {sortKey === 'totalSales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalVat')} onClick={() => handleSort('totalVat')}>VAT {sortKey === 'totalVat' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalTurnover')} onClick={() => handleSort('totalTurnover')}>Turnover {sortKey === 'totalTurnover' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets {sortKey === 'totalTickets' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff % {sortKey === 'staffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents % {sortKey === 'rentsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('utilitiesPct')} onClick={() => handleSort('utilitiesPct')}>Utilities % {sortKey === 'utilitiesPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('maintenancePct')} onClick={() => handleSort('maintenancePct')}>Maint. % {sortKey === 'maintenancePct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('bankingCostsPct')} onClick={() => handleSort('bankingCostsPct')}>Banking % {sortKey === 'bankingCostsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('othersPct')} onClick={() => handleSort('othersPct')}>Others % {sortKey === 'othersPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC % {sortKey === 'storeContributionPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA {sortKey === 'totalEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA % {sortKey === 'ebitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -150,15 +161,22 @@ export default function PerformancePage() {
                   onClick={() => router.push(`/store/${encodeURIComponent(r.store)}`)}
                 >
                   <td style={{ fontWeight: 500 }}>{r.store}</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>{r.code}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.concept}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.region}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.store_type}</td>
                   <td className="numeric">{formatCurrency(r.totalSales)}</td>
+                  <td className="numeric">{formatCurrency(r.totalVat)}</td>
+                  <td className="numeric">{formatCurrency(r.totalTurnover)}</td>
                   <td className="numeric">{formatNumber(r.totalTickets)}</td>
                   <td className="numeric">{formatCurrency(r.avgTicket)}</td>
                   <td className="numeric">{formatPercent(r.rawMaterialsPct)}</td>
                   <td className={`numeric ${(r.staffPct ?? 0) > 0.30 ? 'cell-warning' : ''}`}>{formatPercent(r.staffPct)}</td>
                   <td className="numeric">{formatPercent(r.rentsPct)}</td>
+                  <td className="numeric">{formatPercent(r.utilitiesPct)}</td>
+                  <td className="numeric">{formatPercent(r.maintenancePct)}</td>
+                  <td className="numeric">{formatPercent(r.bankingCostsPct)}</td>
+                  <td className="numeric">{formatPercent(r.othersPct)}</td>
                   <td className={`numeric ${(r.storeContributionPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(r.storeContributionPct)}</td>
                   <td className={`numeric ${r.totalEbitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalEbitda)}</td>
                   <td className={`numeric ${(r.ebitdaPct ?? 0) >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatPercent(r.ebitdaPct)}</td>

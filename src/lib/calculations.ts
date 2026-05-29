@@ -43,12 +43,13 @@ export function filterByPeriod(
 
 /**
  * Aggregate records using weighted logic (§11.3)
- * Critical: ratio metrics use SUM(metric) / SUM(sales), NOT average of store-level %
+ * Critical: ratio metrics use SUM(metric) / SUM(turnover), NOT average of store-level %
  */
 export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
   const uniqueStores = new Set(records.map(r => r.store));
 
   const totalSales = records.reduce((s, r) => s + r.sales, 0);
+  const totalTurnover = records.reduce((s, r) => s + (r.turnover ?? (r.sales - r.vat)), 0);
   const totalTickets = records.reduce((s, r) => s + r.tickets, 0);
   const totalRawMaterials = records.reduce((s, r) => s + r.raw_materials, 0);
   const totalStaff = records.reduce((s, r) => s + r.staff, 0);
@@ -74,6 +75,7 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
   return {
     storeCount,
     totalSales,
+    totalTurnover,
     totalTickets,
     avgTicket: safeDivide(totalSales, totalTickets) ?? 0,
     totalRawMaterials,
@@ -91,22 +93,22 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
     totalCit,
     totalFcff,
     // Weighted ratios
-    rawMaterialsPct: safeDivide(totalRawMaterials, totalSales),
-    staffPct: safeDivide(totalStaff, totalSales),
-    rentsPct: safeDivide(totalRents, totalSales),
-    utilitiesPct: safeDivide(totalUtilities, totalSales),
-    maintenancePct: safeDivide(totalMaintenance, totalSales),
-    bankingCostsPct: safeDivide(totalBankingCosts, totalSales),
-    vatPct: safeDivide(totalVat, totalSales),
-    othersPct: safeDivide(totalOthers, totalSales),
-    storeContributionPct: safeDivide(totalSC, totalSales),
-    adminCostsPct: safeDivide(totalAdminCosts, totalSales),
-    ebitdaPct: safeDivide(totalEbitda, totalSales),
-    fcffPct: safeDivide(totalFcff, totalSales),
+    rawMaterialsPct: safeDivide(totalRawMaterials, totalTurnover),
+    staffPct: safeDivide(totalStaff, totalTurnover),
+    rentsPct: safeDivide(totalRents, totalTurnover),
+    utilitiesPct: safeDivide(totalUtilities, totalTurnover),
+    maintenancePct: safeDivide(totalMaintenance, totalTurnover),
+    bankingCostsPct: safeDivide(totalBankingCosts, totalTurnover),
+    othersPct: safeDivide(totalOthers, totalTurnover),
+    storeContributionPct: safeDivide(totalSC, totalTurnover),
+    adminCostsPct: safeDivide(totalAdminCosts, totalTurnover),
+    ebitdaPct: safeDivide(totalEbitda, totalTurnover),
+    fcffPct: safeDivide(totalFcff, totalTurnover),
     // Derived
     ebitdaNegativeCount,
     fcffNegativeCount,
     salesPerStore: safeDivide(totalSales, storeCount) ?? 0,
+    turnoverPerStore: safeDivide(totalTurnover, storeCount) ?? 0,
     ebitdaPerStore: safeDivide(totalEbitda, storeCount) ?? 0,
     fcffPerStore: safeDivide(totalFcff, storeCount) ?? 0,
   };
@@ -117,7 +119,7 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
  */
 export function aggregatePerStore(
   records: StoreMonthRecord[],
-): Map<string, AggregatedMetrics & { store: string; concept: string; region: string; store_type: string; location: string; legal_entity: string }> {
+): Map<string, AggregatedMetrics & { store: string; code: string; concept: string; region: string; store_type: string; location: string; legal_entity: string }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
   for (const r of records) {
     const list = grouped.get(r.store) || [];
@@ -125,13 +127,14 @@ export function aggregatePerStore(
     grouped.set(r.store, list);
   }
 
-  const result = new Map<string, AggregatedMetrics & { store: string; concept: string; region: string; store_type: string; location: string; legal_entity: string }>();
+  const result = new Map<string, AggregatedMetrics & { store: string; code: string; concept: string; region: string; store_type: string; location: string; legal_entity: string }>();
   for (const [store, storeRecords] of grouped) {
     const agg = aggregate(storeRecords);
     const first = storeRecords[0];
     result.set(store, {
       ...agg,
       store,
+      code: first.code ?? '',
       concept: first.concept,
       region: first.region,
       store_type: first.store_type,
@@ -184,8 +187,8 @@ function countNegativeStores(records: StoreMonthRecord[], metric: 'ebitda' | 'fc
  */
 export function getMonthlyTrend(
   records: StoreMonthRecord[],
-  metric: keyof Pick<StoreMonthRecord, 'sales' | 'tickets' | 'avg_ticket' | 'ebitda' | 'fcff' | 'raw_materials' | 'staff' | 'store_contribution' | 'capex'>,
-): Array<{ period: string; year: number; month: number; value: number; sales: number }> {
+  metric: keyof Pick<StoreMonthRecord, 'sales' | 'turnover' | 'tickets' | 'avg_ticket' | 'ebitda' | 'fcff' | 'raw_materials' | 'staff' | 'store_contribution' | 'capex'>,
+): Array<{ period: string; year: number; month: number; value: number; sales: number; turnover: number }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
   for (const r of records) {
     const key = `${r.year}-${String(r.month).padStart(2, '0')}`;
@@ -197,10 +200,13 @@ export function getMonthlyTrend(
   return Array.from(grouped.entries())
     .map(([period, recs]) => {
       const totalSales = recs.reduce((s, r) => s + r.sales, 0);
+      const totalTurnover = recs.reduce((s, r) => s + (r.turnover ?? (r.sales - r.vat)), 0);
       const totalTickets = recs.reduce((s, r) => s + r.tickets, 0);
       let value: number;
       if (metric === 'avg_ticket') {
         value = totalTickets !== 0 ? totalSales / totalTickets : 0;
+      } else if (metric === 'turnover') {
+        value = totalTurnover;
       } else {
         value = recs.reduce((s, r) => s + (r[metric] as number), 0);
       }
@@ -210,6 +216,7 @@ export function getMonthlyTrend(
         month: recs[0].month,
         value,
         sales: totalSales,
+        turnover: totalTurnover,
       };
     })
     .sort((a, b) => a.period.localeCompare(b.period));
@@ -221,7 +228,7 @@ export function getMonthlyTrend(
 export function getRatioTrend(
   records: StoreMonthRecord[],
   numeratorField: keyof Pick<StoreMonthRecord, 'raw_materials' | 'staff' | 'rents' | 'ebitda' | 'fcff' | 'store_contribution'>,
-  denominatorField: keyof Pick<StoreMonthRecord, 'sales' | 'tickets'> = 'sales',
+  denominatorField: keyof Pick<StoreMonthRecord, 'sales' | 'turnover' | 'tickets'> = 'turnover',
 ): Array<{ period: string; year: number; month: number; value: number | null }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
   for (const r of records) {
@@ -234,7 +241,9 @@ export function getRatioTrend(
   return Array.from(grouped.entries())
     .map(([period, recs]) => {
       const totalNum = recs.reduce((s, r) => s + (r[numeratorField] as number), 0);
-      const totalDen = recs.reduce((s, r) => s + (r[denominatorField] as number), 0);
+      const totalDen = recs.reduce((s, r) => (
+        s + (denominatorField === 'turnover' ? (r.turnover ?? (r.sales - r.vat)) : (r[denominatorField] as number))
+      ), 0);
       return {
         period,
         year: recs[0].year,
@@ -243,4 +252,27 @@ export function getRatioTrend(
       };
     })
     .sort((a, b) => a.period.localeCompare(b.period));
+}
+
+/**
+ * Get yearly comparison data (weighted aggregation per year)
+ * Respects periodBasis and month from filters for apples-to-apples comparison
+ */
+export function getYearlyComparison(
+  records: StoreMonthRecord[],
+  basis: PeriodBasis,
+  month: number,
+  availableYears: number[],
+): Array<{ year: number; metrics: AggregatedMetrics }> {
+  return availableYears
+    .map(year => {
+      const subset = filterByPeriod(records, basis, year, month);
+      if (subset.length === 0) return null;
+      return {
+        year,
+        metrics: aggregate(subset),
+      };
+    })
+    .filter((o): o is { year: number; metrics: AggregatedMetrics } => o !== null)
+    .sort((a, b) => b.year - a.year); // Newest first
 }

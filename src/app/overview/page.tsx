@@ -31,25 +31,27 @@ export default function OverviewPage() {
   }, [periodData]);
 
   // Trend data (all time, not filtered by period)
-  const salesTrend = useMemo(() => getMonthlyTrend(filteredData, 'sales'), [filteredData]);
+  const turnoverTrend = useMemo(() => getMonthlyTrend(filteredData, 'turnover'), [filteredData]);
   const ebitdaTrend = useMemo(() => getMonthlyTrend(filteredData, 'ebitda'), [filteredData]);
 
   // Mix by concept
   const conceptMix = useMemo(() => {
     const map = aggregateByDimension(periodData, 'concept');
     return Array.from(map.entries())
-      .map(([name, agg]) => ({ name, sales: agg.totalSales, ebitda: agg.totalEbitda }))
-      .sort((a, b) => b.sales - a.sales);
+      .map(([name, agg]) => ({ name, turnover: agg.totalTurnover, ebitda: agg.totalEbitda }))
+      .sort((a, b) => b.turnover - a.turnover);
   }, [periodData]);
 
   // Waterfall data
   const waterfallData = useMemo(() => {
     const raw = [
       { name: 'Sales', value: portfolio.totalSales, type: 'total' },
+      { name: 'VAT', value: -portfolio.totalVat, type: 'cost' },
+      { name: 'Turnover', value: portfolio.totalTurnover, type: 'subtotal' },
       { name: 'Raw Mat.', value: -portfolio.totalRawMaterials, type: 'cost' },
       { name: 'Staff', value: -portfolio.totalStaff, type: 'cost' },
       { name: 'Rents', value: -portfolio.totalRents, type: 'cost' },
-      { name: 'Other Costs', value: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalVat + portfolio.totalOthers), type: 'cost' },
+      { name: 'Other Costs', value: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalOthers), type: 'cost' },
       { name: 'Store Contr.', value: portfolio.totalStoreContribution, type: 'subtotal' },
       { name: 'Admin', value: -portfolio.totalAdminCosts, type: 'cost' },
       { name: 'EBITDA', value: portfolio.totalEbitda, type: 'subtotal' },
@@ -66,6 +68,7 @@ export default function OverviewPage() {
         base = 0;
         displayValue = item.value;
         if (item.name === 'Sales') color = '#3b82f6';
+        else if (item.name === 'Turnover') color = '#06b6d4';
         else if (item.name === 'Store Contr.') color = '#8b5cf6';
         else color = item.value >= 0 ? '#10b981' : '#ef4444';
         currentBase = item.value;
@@ -77,7 +80,9 @@ export default function OverviewPage() {
         currentBase += item.value;
       }
 
-      const pct = portfolio.totalSales !== 0 ? Math.abs(item.value) / portfolio.totalSales : 0;
+      const pct = ['Sales', 'VAT', 'Turnover'].includes(item.name)
+        ? null
+        : (portfolio.totalTurnover !== 0 ? Math.abs(item.value) / portfolio.totalTurnover : 0);
 
       return {
         ...item,
@@ -120,9 +125,10 @@ export default function OverviewPage() {
 
       {/* KPI Cards */}
       <div className="kpi-grid">
-        <KPICard label="Total Sales" value={portfolio.totalSales} format="compact" icon="💰" />
+        <KPICard label="Turnover" value={portfolio.totalTurnover} format="compact" icon="💰" />
+        <KPICard label="Gross Sales" value={portfolio.totalSales} format="compact" icon="🧾" />
         <KPICard label="Total Tickets" value={portfolio.totalTickets} format="number" icon="🎫" />
-        <KPICard label="Avg Ticket" value={portfolio.avgTicket} format="currency" icon="🧾" />
+        <KPICard label="Avg Ticket" value={portfolio.avgTicket} format="currency" />
         <KPICard label="EBITDA" value={portfolio.totalEbitda} format="compact" icon="📈" />
         <KPICard label="FCFF" value={portfolio.totalFcff} format="compact" icon="💵" />
         <KPICard label="Store Contribution" value={portfolio.totalStoreContribution} format="compact" icon="🏪" />
@@ -138,13 +144,13 @@ export default function OverviewPage() {
 
       {/* Trend Charts */}
       <div className="chart-grid">
-        {/* Sales Trend */}
+        {/* Turnover Trend */}
         <div className="chart-container">
-          <div className="chart-title">Sales Trend</div>
+          <div className="chart-title">Turnover Trend</div>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={salesTrend}>
+            <AreaChart data={turnoverTrend}>
               <defs>
-                <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="turnoverGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                 </linearGradient>
@@ -154,11 +160,11 @@ export default function OverviewPage() {
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any) => [formatCurrency(v), 'Sales']}
+                formatter={(v: any) => [formatCurrency(v), 'Turnover']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
-              <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="url(#salesGradient)" strokeWidth={2} />
+              <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="url(#turnoverGradient)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -178,7 +184,7 @@ export default function OverviewPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
-                formatter={(v: number) => [formatCurrency(v), 'EBITDA']}
+                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -192,7 +198,7 @@ export default function OverviewPage() {
       <div className="chart-grid">
         {/* P&L Waterfall */}
         <div className="chart-container">
-          <div className="chart-title">P&L Waterfall: Sales → FCFF</div>
+          <div className="chart-title">P&L Waterfall: Sales to VAT to Turnover to FCFF</div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={waterfallData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -208,9 +214,11 @@ export default function OverviewPage() {
                         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{data.name}</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: data.color }}>
                           <span style={{ fontSize: 13 }}>{formatCurrency(data.value)}</span>
-                          <span style={{ fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {formatPercent(data.pct)}
-                          </span>
+                          {data.pct !== null && (
+                            <span style={{ fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                              {formatPercent(data.pct)} of Turnover
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
@@ -228,9 +236,9 @@ export default function OverviewPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Sales by Concept */}
+        {/* Turnover by Concept */}
         <div className="chart-container">
-          <div className="chart-title">Sales Mix by Concept</div>
+          <div className="chart-title">Turnover Mix by Concept</div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={conceptMix} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -242,7 +250,7 @@ export default function OverviewPage() {
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
-              <Bar dataKey="sales" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="turnover" fill="#3b82f6" radius={[0, 4, 4, 0]}>
                 {conceptMix.map((_, idx) => (
                   <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
                 ))}
@@ -262,7 +270,7 @@ export default function OverviewPage() {
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="store" width={180} tick={{ fontSize: 9 }} />
               <Tooltip
-                formatter={(v: number) => [formatCurrency(v), 'EBITDA']}
+                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -279,7 +287,7 @@ export default function OverviewPage() {
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="store" width={180} tick={{ fontSize: 9 }} />
               <Tooltip
-                formatter={(v: number) => [formatCurrency(v), 'EBITDA']}
+                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'EBITDA']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />

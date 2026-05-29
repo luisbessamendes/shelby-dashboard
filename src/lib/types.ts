@@ -6,6 +6,7 @@
 export interface StoreMonthRecord {
   id?: string;
   store: string;
+  code: string | null;
   concept: string;
   region: string;
   store_type: string;
@@ -16,6 +17,7 @@ export interface StoreMonthRecord {
   tickets: number;
   avg_ticket: number;
   sales: number;
+  turnover: number;
   raw_materials: number;
   staff: number;
   rents: number;
@@ -42,7 +44,6 @@ export interface StoreMonthWithRatios extends StoreMonthRecord {
   utilities_pct: number | null;
   maintenance_pct: number | null;
   banking_costs_pct: number | null;
-  vat_pct: number | null;
   others_pct: number | null;
   store_contribution_pct: number | null;
   admin_costs_pct: number | null;
@@ -82,6 +83,7 @@ export interface FilterState {
 export interface AggregatedMetrics {
   storeCount: number;
   totalSales: number;
+  totalTurnover: number;
   totalTickets: number;
   avgTicket: number; // totalSales / totalTickets (weighted)
   totalRawMaterials: number;
@@ -105,7 +107,6 @@ export interface AggregatedMetrics {
   utilitiesPct: number | null;
   maintenancePct: number | null;
   bankingCostsPct: number | null;
-  vatPct: number | null;
   othersPct: number | null;
   storeContributionPct: number | null;
   adminCostsPct: number | null;
@@ -115,6 +116,7 @@ export interface AggregatedMetrics {
   ebitdaNegativeCount: number;
   fcffNegativeCount: number;
   salesPerStore: number;
+  turnoverPerStore: number;
   ebitdaPerStore: number;
   fcffPerStore: number;
 }

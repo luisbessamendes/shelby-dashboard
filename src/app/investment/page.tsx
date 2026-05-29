@@ -52,7 +52,7 @@ export default function InvestmentPage() {
         current = end;
       }
 
-      const pct = portfolio.totalSales !== 0 ? Math.abs(item.raw) / portfolio.totalSales : 0;
+      const pct = portfolio.totalTurnover !== 0 ? Math.abs(item.raw) / portfolio.totalTurnover : 0;
 
       return {
         ...item,
@@ -169,7 +169,7 @@ export default function InvestmentPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: data.color }}>
                           <span style={{ fontSize: 13 }}>{formatCurrency(data.tooltipValue)}</span>
                           <span style={{ fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {formatPercent(data.pct)} of Sales
+                            {formatPercent(data.pct)} of Turnover
                           </span>
                         </div>
                       </div>
