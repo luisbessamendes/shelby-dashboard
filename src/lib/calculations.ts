@@ -8,6 +8,8 @@ import type {
   PeriodBasis,
 } from './types';
 
+export type TrendBasis = 'monthly' | 'ltm';
+
 /** Safe division: returns null if denominator is 0 */
 function safeDivide(num: number, den: number): number | null {
   return den !== 0 ? num / den : null;
@@ -188,6 +190,7 @@ function countNegativeStores(records: StoreMonthRecord[], metric: 'ebitda' | 'fc
 export function getMonthlyTrend(
   records: StoreMonthRecord[],
   metric: keyof Pick<StoreMonthRecord, 'sales' | 'turnover' | 'tickets' | 'avg_ticket' | 'ebitda' | 'fcff' | 'raw_materials' | 'staff' | 'store_contribution' | 'capex'>,
+  basis: TrendBasis = 'monthly',
 ): Array<{ period: string; year: number; month: number; value: number; sales: number; turnover: number }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
   for (const r of records) {
@@ -198,7 +201,9 @@ export function getMonthlyTrend(
   }
 
   return Array.from(grouped.entries())
-    .map(([period, recs]) => {
+    .map(([period, periodRecs]) => {
+      const end = periodRecs[0];
+      const recs = basis === 'ltm' ? filterByPeriod(records, 'ltm', end.year, end.month) : periodRecs;
       const totalSales = recs.reduce((s, r) => s + r.sales, 0);
       const totalTurnover = recs.reduce((s, r) => s + (r.turnover ?? (r.sales - r.vat)), 0);
       const totalTickets = recs.reduce((s, r) => s + r.tickets, 0);
@@ -212,8 +217,8 @@ export function getMonthlyTrend(
       }
       return {
         period,
-        year: recs[0].year,
-        month: recs[0].month,
+        year: end.year,
+        month: end.month,
         value,
         sales: totalSales,
         turnover: totalTurnover,
@@ -229,6 +234,7 @@ export function getRatioTrend(
   records: StoreMonthRecord[],
   numeratorField: keyof Pick<StoreMonthRecord, 'raw_materials' | 'staff' | 'rents' | 'ebitda' | 'fcff' | 'store_contribution'>,
   denominatorField: keyof Pick<StoreMonthRecord, 'sales' | 'turnover' | 'tickets'> = 'turnover',
+  basis: TrendBasis = 'monthly',
 ): Array<{ period: string; year: number; month: number; value: number | null }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
   for (const r of records) {
@@ -239,15 +245,17 @@ export function getRatioTrend(
   }
 
   return Array.from(grouped.entries())
-    .map(([period, recs]) => {
+    .map(([period, periodRecs]) => {
+      const end = periodRecs[0];
+      const recs = basis === 'ltm' ? filterByPeriod(records, 'ltm', end.year, end.month) : periodRecs;
       const totalNum = recs.reduce((s, r) => s + (r[numeratorField] as number), 0);
       const totalDen = recs.reduce((s, r) => (
         s + (denominatorField === 'turnover' ? (r.turnover ?? (r.sales - r.vat)) : (r[denominatorField] as number))
       ), 0);
       return {
         period,
-        year: recs[0].year,
-        month: recs[0].month,
+        year: end.year,
+        month: end.month,
         value: safeDivide(totalNum, totalDen),
       };
     })
