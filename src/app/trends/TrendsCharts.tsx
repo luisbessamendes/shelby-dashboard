@@ -6,19 +6,27 @@ import {
   AreaChart, Area,
 } from 'recharts';
 import { getMonthlyTrend, getRatioTrend } from '@/lib/calculations';
-import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatCompact, formatNumber, formatPercent } from '@/lib/formatters';
+import type { TrendBasis } from '@/lib/calculations';
 import type { StoreMonthRecord } from '@/lib/types';
 
 interface TrendsChartsProps {
   filteredData: StoreMonthRecord[];
+  trendBasis: TrendBasis;
 }
 
 type MetricKey = 'turnover' | 'sales' | 'tickets' | 'ebitda' | 'fcff' | 'store_contribution';
 type RatioKey = 'ebitda' | 'staff' | 'raw_materials' | 'fcff';
 
 const toNumber = (value: unknown) => typeof value === 'number' ? value : Number(value ?? 0);
+const tooltipContentStyle = {
+  background: 'var(--bg-surface)',
+  border: '1px solid var(--border-subtle)',
+  borderRadius: 8,
+};
+const tooltipTextStyle = { color: 'var(--text-primary)' };
 
-export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
+export default function TrendsCharts({ filteredData, trendBasis }: TrendsChartsProps) {
   const [activeMetric, setActiveMetric] = useState<MetricKey>('turnover');
   const [activeRatio, setActiveRatio] = useState<RatioKey>('ebitda');
 
@@ -38,44 +46,52 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
     { value: 'fcff', label: 'FCFF %', color: '#3b82f6' },
   ];
 
-  const trendData = useMemo(() => getMonthlyTrend(filteredData, activeMetric), [filteredData, activeMetric]);
-  const ratioData = useMemo(() => getRatioTrend(filteredData, activeRatio), [filteredData, activeRatio]);
+  const trendData = useMemo(() => getMonthlyTrend(filteredData, activeMetric, trendBasis), [filteredData, activeMetric, trendBasis]);
+  const ratioData = useMemo(() => getRatioTrend(filteredData, activeRatio, 'turnover', trendBasis), [filteredData, activeRatio, trendBasis]);
 
   const allAbsData = useMemo(() => {
-    const turnoverT = getMonthlyTrend(filteredData, 'turnover');
-    const ebitdaT = getMonthlyTrend(filteredData, 'ebitda');
-    const fcffT = getMonthlyTrend(filteredData, 'fcff');
+    const turnoverT = getMonthlyTrend(filteredData, 'turnover', trendBasis);
+    const ebitdaT = getMonthlyTrend(filteredData, 'ebitda', trendBasis);
+    const fcffT = getMonthlyTrend(filteredData, 'fcff', trendBasis);
+    const ebitdaByPeriod = new Map(ebitdaT.map(s => [s.period, s.value]));
+    const fcffByPeriod = new Map(fcffT.map(s => [s.period, s.value]));
     const periods = turnoverT.map(s => s.period);
-    return periods.map((p, i) => ({
+    return periods.map((p) => ({
       period: p,
-      turnover: turnoverT[i]?.value ?? 0,
-      ebitda: ebitdaT[i]?.value ?? 0,
-      fcff: fcffT[i]?.value ?? 0,
+      turnover: turnoverT.find(s => s.period === p)?.value ?? 0,
+      ebitda: ebitdaByPeriod.get(p) ?? 0,
+      fcff: fcffByPeriod.get(p) ?? 0,
     }));
-  }, [filteredData]);
+  }, [filteredData, trendBasis]);
 
   const allRatioData = useMemo(() => {
-    const ebitdaR = getRatioTrend(filteredData, 'ebitda');
-    const staffR = getRatioTrend(filteredData, 'staff');
-    const rawMatR = getRatioTrend(filteredData, 'raw_materials');
+    const ebitdaR = getRatioTrend(filteredData, 'ebitda', 'turnover', trendBasis);
+    const staffR = getRatioTrend(filteredData, 'staff', 'turnover', trendBasis);
+    const rawMatR = getRatioTrend(filteredData, 'raw_materials', 'turnover', trendBasis);
+    const staffByPeriod = new Map(staffR.map(s => [s.period, s.value]));
+    const rawMatByPeriod = new Map(rawMatR.map(s => [s.period, s.value]));
     const periods = ebitdaR.map(s => s.period);
     return periods.map((p, i) => ({
       period: p,
       ebitda_pct: ((ebitdaR[i]?.value ?? 0) * 100),
-      staff_pct: ((staffR[i]?.value ?? 0) * 100),
-      raw_mat_pct: ((rawMatR[i]?.value ?? 0) * 100),
+      staff_pct: ((staffByPeriod.get(p) ?? 0) * 100),
+      raw_mat_pct: ((rawMatByPeriod.get(p) ?? 0) * 100),
     }));
-  }, [filteredData]);
+  }, [filteredData, trendBasis]);
 
   const currentColor = absoluteMetrics.find(m => m.value === activeMetric)?.color ?? '#3b82f6';
   const currentRatioColor = ratioMetrics.find(m => m.value === activeRatio)?.color ?? '#10b981';
+  const trendLabel = trendBasis === 'ltm' ? 'LTM' : 'Monthly';
+  const formatActiveMetric = (value: unknown) => (
+    activeMetric === 'tickets' ? formatNumber(toNumber(value)) : formatCurrency(toNumber(value))
+  );
 
   return (
     <>
       {/* Absolute metric selector + chart */}
       <div className="chart-container mb-24">
         <div className="chart-title">
-          <span>Absolute Metrics Trend</span>
+          <span>Absolute Metrics Trend ({trendLabel})</span>
           <div style={{ display: 'flex', gap: 4 }}>
             {absoluteMetrics.map(m => (
               <button
@@ -101,9 +117,10 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
             <XAxis dataKey="period" tick={{ fontSize: 10 }} />
             <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
             <Tooltip
-              formatter={(v: unknown) => [formatCurrency(toNumber(v)), absoluteMetrics.find(m => m.value === activeMetric)?.label]}
-              contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-              itemStyle={{ color: '#fff' }}
+              formatter={(v: unknown) => [formatActiveMetric(v), absoluteMetrics.find(m => m.value === activeMetric)?.label]}
+              contentStyle={tooltipContentStyle}
+              itemStyle={tooltipTextStyle}
+              labelStyle={tooltipTextStyle}
             />
             <Area type="monotone" dataKey="value" stroke={currentColor} fill="url(#trendGrad)" strokeWidth={2} />
           </AreaChart>
@@ -113,7 +130,7 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
       {/* Ratio metric selector + chart */}
       <div className="chart-container mb-24">
         <div className="chart-title">
-          <span>Ratio Metrics Trend</span>
+          <span>Ratio Metrics Trend ({trendLabel})</span>
           <div style={{ display: 'flex', gap: 4 }}>
             {ratioMetrics.map(m => (
               <button
@@ -134,8 +151,9 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
             <YAxis tickFormatter={(v: number) => formatPercent(v)} tick={{ fontSize: 10 }} />
             <Tooltip
               formatter={(v: unknown) => [formatPercent(toNumber(v)), ratioMetrics.find(m => m.value === activeRatio)?.label]}
-              contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-              itemStyle={{ color: '#fff' }}
+              contentStyle={tooltipContentStyle}
+              itemStyle={tooltipTextStyle}
+              labelStyle={tooltipTextStyle}
             />
             <Line type="monotone" dataKey="value" stroke={currentRatioColor} strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
@@ -145,7 +163,7 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
       {/* Multi-metric comparison */}
       <div className="chart-grid">
         <div className="chart-container">
-          <div className="chart-title">Turnover / EBITDA / FCFF Overlay</div>
+          <div className="chart-title">Turnover / EBITDA / FCFF Overlay ({trendLabel})</div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={allAbsData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -153,8 +171,9 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
                 formatter={(v: unknown, name: unknown) => [formatCurrency(toNumber(v)), String(name).toUpperCase()]}
-                contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-                itemStyle={{ color: '#fff' }}
+                contentStyle={tooltipContentStyle}
+                itemStyle={tooltipTextStyle}
+                labelStyle={tooltipTextStyle}
               />
               <Line type="monotone" dataKey="turnover" stroke="#3b82f6" strokeWidth={2} dot={false} name="Turnover" />
               <Line type="monotone" dataKey="ebitda" stroke="#10b981" strokeWidth={2} dot={false} />
@@ -164,7 +183,7 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
         </div>
 
         <div className="chart-container">
-          <div className="chart-title">EBITDA % / Staff % / Raw Mat % Overlay</div>
+          <div className="chart-title">EBITDA % / Staff % / Raw Mat % Overlay ({trendLabel})</div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={allRatioData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -172,8 +191,9 @@ export default function TrendsCharts({ filteredData }: TrendsChartsProps) {
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 formatter={(v: unknown, name: unknown) => [`${toNumber(v).toFixed(1)}%`, String(name)]}
-                contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-                itemStyle={{ color: '#fff' }}
+                contentStyle={tooltipContentStyle}
+                itemStyle={tooltipTextStyle}
+                labelStyle={tooltipTextStyle}
               />
               <Line type="monotone" dataKey="ebitda_pct" stroke="#10b981" strokeWidth={2} dot={false} name="EBITDA %" />
               <Line type="monotone" dataKey="staff_pct" stroke="#f59e0b" strokeWidth={2} dot={false} name="Staff %" />

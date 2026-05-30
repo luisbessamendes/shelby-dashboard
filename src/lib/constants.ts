@@ -50,6 +50,7 @@ export const EXCEL_COLUMN_MAP: Record<string, string> = {
   'Others': 'others',
   'Store Contribution': 'store_contribution',
   'Admin. Costs': 'admin_costs',
+  'Headquarter & Admin.': 'admin_costs',
   'EBITDA': 'ebitda',
   'CAPEX': 'capex',
   'CIT': 'cit',
@@ -68,6 +69,7 @@ export const SKIP_COLUMNS = new Set([
   'Others %',
   'Store Contribution %',
   'Admin. Costs %',
+  'Headquarter & Admin.2',
   'EBITDA %',
   'FCFF %',
 ]);

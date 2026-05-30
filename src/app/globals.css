@@ -518,6 +518,11 @@ body {
   font-size: 0.8rem;
 }
 
+.performance-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 .data-table thead {
   position: sticky;
   top: 0;
@@ -569,6 +574,25 @@ body {
 
 .data-table tbody tr.clickable {
   cursor: pointer;
+}
+
+.performance-table th:first-child,
+.performance-table td:first-child {
+  position: sticky;
+  left: 0;
+  min-width: 260px;
+  max-width: 320px;
+  background: var(--bg-surface);
+  z-index: 2;
+  box-shadow: 1px 0 0 var(--border-subtle);
+}
+
+.performance-table thead th:first-child {
+  z-index: 12;
+}
+
+.performance-table tbody tr:hover td:first-child {
+  background: var(--bg-surface-hover);
 }
 
 .cell-positive {

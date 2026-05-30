@@ -25,18 +25,15 @@ export default function PerformancePage() {
     const map = aggregatePerStore(periodData);
     let rows = Array.from(map.values());
 
-    // Search
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(r =>
         r.store.toLowerCase().includes(q) ||
-        r.code.toLowerCase().includes(q) ||
         r.concept.toLowerCase().includes(q) ||
         r.region.toLowerCase().includes(q)
       );
     }
 
-    // Sort
     rows.sort((a, b) => {
       const va = (a as unknown as Record<string, unknown>)[sortKey];
       const vb = (b as unknown as Record<string, unknown>)[sortKey];
@@ -61,23 +58,24 @@ export default function PerformancePage() {
   };
 
   const thClass = (key: string) => `${sortKey === key ? 'sorted' : ''}`;
+  const sortIndicator = (key: string) => sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
 
   const exportCSV = () => {
-    const headers = ['Store', 'Code', 'Concept', 'Region', 'Type', 'Location', 'Legal Entity', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Raw Mat', 'Raw Mat %', 'Staff', 'Staff %', 'Rents', 'Rents %', 'Utilities', 'Utilities %', 'Maintenance', 'Maintenance %', 'Banking', 'Banking %', 'Others', 'Others %', 'Store Contr.', 'SC %', 'Admin', 'Admin %', 'EBITDA', 'EBITDA %', 'CAPEX', 'CIT', 'FCFF', 'FCFF %'];
+    const headers = ['Store', 'Concept', 'Region', 'Type', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Raw Mat %', 'Staff %', 'Rents %', 'Utilities %', 'Maintenance %', 'Banking %', 'Others %', 'SC %', 'Store Contribution', 'Headquarter & Admin.', 'EBITDA', 'EBITDA %', 'FCFF', 'FCFF %'];
     const csvRows = storeRows.map(r => [
-      r.store, r.code, r.concept, r.region, r.store_type, r.location, r.legal_entity,
+      r.store, r.concept, r.region, r.store_type,
       r.totalSales, r.totalVat, r.totalTurnover, r.totalTickets, r.avgTicket,
-      r.totalRawMaterials, r.rawMaterialsPct,
-      r.totalStaff, r.staffPct,
-      r.totalRents, r.rentsPct,
-      r.totalUtilities, r.utilitiesPct,
-      r.totalMaintenance, r.maintenancePct,
-      r.totalBankingCosts, r.bankingCostsPct,
-      r.totalOthers, r.othersPct,
-      r.totalStoreContribution, r.storeContributionPct,
-      r.totalAdminCosts, r.adminCostsPct,
+      r.rawMaterialsPct,
+      r.staffPct,
+      r.rentsPct,
+      r.utilitiesPct,
+      r.maintenancePct,
+      r.bankingCostsPct,
+      r.othersPct,
+      r.storeContributionPct,
+      r.totalStoreContribution,
+      r.totalAdminCosts,
       r.totalEbitda, r.ebitdaPct,
-      r.totalCapex, r.totalCit,
       r.totalFcff, r.fcffPct,
     ].join(','));
     const csv = [headers.join(','), ...csvRows].join('\n');
@@ -116,41 +114,42 @@ export default function PerformancePage() {
           <input
             className="data-table-search"
             type="text"
-            placeholder="Search stores, codes, concepts, regions..."
+            placeholder="Search stores, concepts, regions..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
           <button className="btn btn-secondary btn-sm" onClick={exportCSV}>
-            📥 Export CSV
+            Export CSV
           </button>
         </div>
 
         <div className="data-table-wrapper" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
-          <table className="data-table">
+          <table className="data-table performance-table">
             <thead>
               <tr>
-                <th className={thClass('store')} onClick={() => handleSort('store')}>Store {sortKey === 'store' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('code')} onClick={() => handleSort('code')}>Code {sortKey === 'code' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept {sortKey === 'concept' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('region')} onClick={() => handleSort('region')}>Region {sortKey === 'region' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type {sortKey === 'store_type' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Gross Sales {sortKey === 'totalSales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalVat')} onClick={() => handleSort('totalVat')}>VAT {sortKey === 'totalVat' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalTurnover')} onClick={() => handleSort('totalTurnover')}>Turnover {sortKey === 'totalTurnover' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets {sortKey === 'totalTickets' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff % {sortKey === 'staffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents % {sortKey === 'rentsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('utilitiesPct')} onClick={() => handleSort('utilitiesPct')}>Utilities % {sortKey === 'utilitiesPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('maintenancePct')} onClick={() => handleSort('maintenancePct')}>Maint. % {sortKey === 'maintenancePct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('bankingCostsPct')} onClick={() => handleSort('bankingCostsPct')}>Banking % {sortKey === 'bankingCostsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('othersPct')} onClick={() => handleSort('othersPct')}>Others % {sortKey === 'othersPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC % {sortKey === 'storeContributionPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA {sortKey === 'totalEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA % {sortKey === 'ebitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF {sortKey === 'totalFcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('fcffPct')} onClick={() => handleSort('fcffPct')}>FCFF % {sortKey === 'fcffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('store')} onClick={() => handleSort('store')}>Store{sortIndicator('store')}</th>
+                <th className={thClass('concept')} onClick={() => handleSort('concept')}>Concept{sortIndicator('concept')}</th>
+                <th className={thClass('region')} onClick={() => handleSort('region')}>Region{sortIndicator('region')}</th>
+                <th className={thClass('store_type')} onClick={() => handleSort('store_type')}>Type{sortIndicator('store_type')}</th>
+                <th className={thClass('totalSales')} onClick={() => handleSort('totalSales')}>Gross Sales{sortIndicator('totalSales')}</th>
+                <th className={thClass('totalVat')} onClick={() => handleSort('totalVat')}>VAT{sortIndicator('totalVat')}</th>
+                <th className={thClass('totalTurnover')} onClick={() => handleSort('totalTurnover')}>Turnover{sortIndicator('totalTurnover')}</th>
+                <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets{sortIndicator('totalTickets')}</th>
+                <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket{sortIndicator('avgTicket')}</th>
+                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat %{sortIndicator('rawMaterialsPct')}</th>
+                <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff %{sortIndicator('staffPct')}</th>
+                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents %{sortIndicator('rentsPct')}</th>
+                <th className={thClass('utilitiesPct')} onClick={() => handleSort('utilitiesPct')}>Utilities %{sortIndicator('utilitiesPct')}</th>
+                <th className={thClass('maintenancePct')} onClick={() => handleSort('maintenancePct')}>Maint. %{sortIndicator('maintenancePct')}</th>
+                <th className={thClass('bankingCostsPct')} onClick={() => handleSort('bankingCostsPct')}>Banking %{sortIndicator('bankingCostsPct')}</th>
+                <th className={thClass('othersPct')} onClick={() => handleSort('othersPct')}>Others %{sortIndicator('othersPct')}</th>
+                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC %{sortIndicator('storeContributionPct')}</th>
+                <th className={thClass('totalStoreContribution')} onClick={() => handleSort('totalStoreContribution')}>Store Contribution{sortIndicator('totalStoreContribution')}</th>
+                <th className={thClass('totalAdminCosts')} onClick={() => handleSort('totalAdminCosts')}>Headquarter & Admin.{sortIndicator('totalAdminCosts')}</th>
+                <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA{sortIndicator('totalEbitda')}</th>
+                <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA %{sortIndicator('ebitdaPct')}</th>
+                <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF{sortIndicator('totalFcff')}</th>
+                <th className={thClass('fcffPct')} onClick={() => handleSort('fcffPct')}>FCFF %{sortIndicator('fcffPct')}</th>
               </tr>
             </thead>
             <tbody>
@@ -161,7 +160,6 @@ export default function PerformancePage() {
                   onClick={() => router.push(`/store/${encodeURIComponent(r.store)}`)}
                 >
                   <td style={{ fontWeight: 500 }}>{r.store}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{r.code}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.concept}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.region}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.store_type}</td>
@@ -178,6 +176,8 @@ export default function PerformancePage() {
                   <td className="numeric">{formatPercent(r.bankingCostsPct)}</td>
                   <td className="numeric">{formatPercent(r.othersPct)}</td>
                   <td className={`numeric ${(r.storeContributionPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(r.storeContributionPct)}</td>
+                  <td className={`numeric ${r.totalStoreContribution >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalStoreContribution)}</td>
+                  <td className="numeric">{formatCurrency(r.totalAdminCosts)}</td>
                   <td className={`numeric ${r.totalEbitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalEbitda)}</td>
                   <td className={`numeric ${(r.ebitdaPct ?? 0) >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatPercent(r.ebitdaPct)}</td>
                   <td className={`numeric ${r.totalFcff >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalFcff)}</td>
