@@ -15,6 +15,21 @@ function safeDivide(num: number, den: number): number | null {
   return den !== 0 ? num / den : null;
 }
 
+function monthIndex(year: number, month: number): number {
+  return year * 12 + month;
+}
+
+function hasCompleteLtmWindow(records: StoreMonthRecord[], year: number, month: number): boolean {
+  const endDate = monthIndex(year, month);
+  const startDate = endDate - 11;
+  const months = new Set<number>();
+  for (const r of records) {
+    const d = monthIndex(r.year, r.month);
+    if (d >= startDate && d <= endDate) months.add(d);
+  }
+  return months.size === 12;
+}
+
 /**
  * Filter records for a given period basis
  */
@@ -203,6 +218,7 @@ export function getMonthlyTrend(
   return Array.from(grouped.entries())
     .map(([period, periodRecs]) => {
       const end = periodRecs[0];
+      if (basis === 'ltm' && !hasCompleteLtmWindow(records, end.year, end.month)) return null;
       const recs = basis === 'ltm' ? filterByPeriod(records, 'ltm', end.year, end.month) : periodRecs;
       const totalSales = recs.reduce((s, r) => s + r.sales, 0);
       const totalTurnover = recs.reduce((s, r) => s + (r.turnover ?? (r.sales - r.vat)), 0);
@@ -224,6 +240,7 @@ export function getMonthlyTrend(
         turnover: totalTurnover,
       };
     })
+    .filter((o): o is { period: string; year: number; month: number; value: number; sales: number; turnover: number } => o !== null)
     .sort((a, b) => a.period.localeCompare(b.period));
 }
 
@@ -247,6 +264,7 @@ export function getRatioTrend(
   return Array.from(grouped.entries())
     .map(([period, periodRecs]) => {
       const end = periodRecs[0];
+      if (basis === 'ltm' && !hasCompleteLtmWindow(records, end.year, end.month)) return null;
       const recs = basis === 'ltm' ? filterByPeriod(records, 'ltm', end.year, end.month) : periodRecs;
       const totalNum = recs.reduce((s, r) => s + (r[numeratorField] as number), 0);
       const totalDen = recs.reduce((s, r) => (
@@ -259,6 +277,7 @@ export function getRatioTrend(
         value: safeDivide(totalNum, totalDen),
       };
     })
+    .filter((o): o is { period: string; year: number; month: number; value: number | null } => o !== null)
     .sort((a, b) => a.period.localeCompare(b.period));
 }
 
