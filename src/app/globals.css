@@ -115,6 +115,9 @@ body {
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
+  width: calc(100vw - var(--sidebar-width));
+  max-width: calc(100vw - var(--sidebar-width));
+  min-width: 0;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -512,6 +515,23 @@ body {
   overflow-x: auto;
 }
 
+.performance-page {
+  width: calc(100vw - var(--sidebar-width) - (var(--page-padding) * 2));
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.performance-page .data-table-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.performance-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -519,6 +539,8 @@ body {
 }
 
 .performance-table {
+  width: max-content;
+  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -580,11 +602,13 @@ body {
 .performance-table td:first-child {
   position: sticky;
   left: 0;
+  width: 280px;
   min-width: 260px;
   max-width: 320px;
   background: var(--bg-surface);
   z-index: 2;
   box-shadow: 1px 0 0 var(--border-subtle);
+  box-sizing: border-box;
 }
 
 .performance-table thead th:first-child {

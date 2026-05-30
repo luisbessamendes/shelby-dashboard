@@ -101,7 +101,7 @@ export default function PerformancePage() {
   }
 
   return (
-    <div>
+    <div className="performance-page">
       <div className="page-header">
         <h1 className="page-title">Portfolio Performance Table</h1>
         <p className="page-description">
@@ -123,7 +123,7 @@ export default function PerformancePage() {
           </button>
         </div>
 
-        <div className="data-table-wrapper" style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+        <div className="data-table-wrapper performance-table-wrapper" style={{ maxHeight: 'calc(100vh - 280px)' }}>
           <table className="data-table performance-table">
             <thead>
               <tr>
