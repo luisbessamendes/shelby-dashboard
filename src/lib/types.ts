@@ -103,6 +103,7 @@ export interface AggregatedMetrics {
   // Weighted ratios
   rawMaterialsPct: number | null;
   staffPct: number | null;
+  primeCostPct: number | null;
   rentsPct: number | null;
   utilitiesPct: number | null;
   maintenancePct: number | null;

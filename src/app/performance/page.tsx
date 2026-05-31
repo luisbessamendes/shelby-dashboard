@@ -61,12 +61,13 @@ export default function PerformancePage() {
   const sortIndicator = (key: string) => sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
 
   const exportCSV = () => {
-    const headers = ['Store', 'Concept', 'Region', 'Type', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Raw Mat %', 'Staff %', 'Rents %', 'Utilities %', 'Maintenance %', 'Banking %', 'Others %', 'SC %', 'Store Contribution', 'Headquarter & Admin.', 'EBITDA', 'EBITDA %', 'FCFF', 'FCFF %'];
+    const headers = ['Store', 'Concept', 'Region', 'Type', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Raw Mat %', 'Staff %', 'Prime Cost %', 'Rents %', 'Utilities %', 'Maintenance %', 'Banking %', 'Others %', 'SC %', 'Store Contribution', 'Headquarter & Admin.', 'EBITDA', 'EBITDA %', 'FCFF', 'FCFF %'];
     const csvRows = storeRows.map(r => [
       r.store, r.concept, r.region, r.store_type,
       r.totalSales, r.totalVat, r.totalTurnover, r.totalTickets, r.avgTicket,
       r.rawMaterialsPct,
       r.staffPct,
+      r.primeCostPct,
       r.rentsPct,
       r.utilitiesPct,
       r.maintenancePct,
@@ -138,6 +139,7 @@ export default function PerformancePage() {
                 <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket{sortIndicator('avgTicket')}</th>
                 <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat %{sortIndicator('rawMaterialsPct')}</th>
                 <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff %{sortIndicator('staffPct')}</th>
+                <th className={thClass('primeCostPct')} onClick={() => handleSort('primeCostPct')}>Prime Cost %{sortIndicator('primeCostPct')}</th>
                 <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents %{sortIndicator('rentsPct')}</th>
                 <th className={thClass('utilitiesPct')} onClick={() => handleSort('utilitiesPct')}>Utilities %{sortIndicator('utilitiesPct')}</th>
                 <th className={thClass('maintenancePct')} onClick={() => handleSort('maintenancePct')}>Maint. %{sortIndicator('maintenancePct')}</th>
@@ -170,6 +172,7 @@ export default function PerformancePage() {
                   <td className="numeric">{formatCurrency(r.avgTicket)}</td>
                   <td className="numeric">{formatPercent(r.rawMaterialsPct)}</td>
                   <td className={`numeric ${(r.staffPct ?? 0) > 0.30 ? 'cell-warning' : ''}`}>{formatPercent(r.staffPct)}</td>
+                  <td className={`numeric ${(r.primeCostPct ?? 0) > 0.60 ? 'cell-negative' : ''}`}>{formatPercent(r.primeCostPct)}</td>
                   <td className="numeric">{formatPercent(r.rentsPct)}</td>
                   <td className="numeric">{formatPercent(r.utilitiesPct)}</td>
                   <td className="numeric">{formatPercent(r.maintenancePct)}</td>

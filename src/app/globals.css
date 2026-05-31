@@ -545,6 +545,19 @@ body {
   border-spacing: 0;
 }
 
+.segment-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.segment-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 .data-table thead {
   position: sticky;
   top: 0;
@@ -616,6 +629,26 @@ body {
 }
 
 .performance-table tbody tr:hover td:first-child {
+  background: var(--bg-surface-hover);
+}
+
+.segment-table th:first-child,
+.segment-table td:first-child {
+  position: sticky;
+  left: 0;
+  min-width: 220px;
+  max-width: 360px;
+  background: var(--bg-surface);
+  z-index: 2;
+  box-shadow: 1px 0 0 var(--border-subtle);
+  box-sizing: border-box;
+}
+
+.segment-table thead th:first-child {
+  z-index: 12;
+}
+
+.segment-table tbody tr:hover td:first-child {
   background: var(--bg-surface-hover);
 }
 

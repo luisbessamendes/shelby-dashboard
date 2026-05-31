@@ -112,6 +112,7 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
     // Weighted ratios
     rawMaterialsPct: safeDivide(totalRawMaterials, totalTurnover),
     staffPct: safeDivide(totalStaff, totalTurnover),
+    primeCostPct: safeDivide(totalRawMaterials + totalStaff, totalTurnover),
     rentsPct: safeDivide(totalRents, totalTurnover),
     utilitiesPct: safeDivide(totalUtilities, totalTurnover),
     maintenancePct: safeDivide(totalMaintenance, totalTurnover),

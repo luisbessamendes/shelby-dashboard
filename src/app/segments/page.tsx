@@ -114,8 +114,8 @@ export default function SegmentsPage() {
 
       {/* Segment Table */}
       <div className="data-table-container mb-24">
-        <div className="data-table-wrapper">
-          <table className="data-table">
+        <div className="data-table-wrapper segment-table-wrapper">
+          <table className="data-table segment-table">
             <thead>
               <tr>
                 <th className={thClass('name')} onClick={() => handleSort('name')}>{DIMENSIONS.find(d => d.value === dimension)?.label} {sortKey === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -125,6 +125,7 @@ export default function SegmentsPage() {
                 <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff % {sortKey === 'staffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('primeCostPct')} onClick={() => handleSort('primeCostPct')}>Prime Cost % {sortKey === 'primeCostPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC % {sortKey === 'storeContributionPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA {sortKey === 'totalEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA % {sortKey === 'ebitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -142,6 +143,7 @@ export default function SegmentsPage() {
                   <td className="numeric">{formatCurrency(s.avgTicket)}</td>
                   <td className="numeric">{formatPercent(s.rawMaterialsPct)}</td>
                   <td className="numeric">{formatPercent(s.staffPct)}</td>
+                  <td className={`numeric ${(s.primeCostPct ?? 0) > 0.60 ? 'cell-negative' : ''}`}>{formatPercent(s.primeCostPct)}</td>
                   <td className="numeric">{formatPercent(s.storeContributionPct)}</td>
                   <td className={`numeric ${s.totalEbitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(s.totalEbitda)}</td>
                   <td className={`numeric ${(s.ebitdaPct ?? 0) >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatPercent(s.ebitdaPct)}</td>
