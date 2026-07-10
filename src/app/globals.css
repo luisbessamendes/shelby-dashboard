@@ -648,25 +648,28 @@ body {
   height: 34px;
   padding: 7px 12px;
   overflow: hidden;
-  background: var(--accent-secondary);
-  color: var(--text-inverse);
-  border-right: 2px solid rgba(255, 255, 255, 0.55);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-left: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-subtle);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
 }
 
 .pnl-group-header.pnl-concept-total {
-  background: var(--accent-primary);
+  background: var(--accent-primary-dim);
+  color: var(--accent-primary);
 }
 
 .pnl-group-header.pnl-portfolio-total {
-  background: #1f2937;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .pnl-period-header {
@@ -676,23 +679,17 @@ body {
   height: 34px;
   padding: 7px 9px;
   background: var(--bg-surface);
-  color: var(--text-secondary);
-  border-right: 1px solid var(--border-glass);
-  border-bottom: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
   text-align: right;
-  font-size: 0.66rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
 }
 
 .pnl-period-header.pnl-yoy-header {
   color: var(--accent-primary);
-}
-
-.pnl-period-header.pnl-current-header,
-.pnl-value-cell.pnl-current-cell {
-  background: #f0f7ff;
 }
 
 .pnl-metric-header {
@@ -704,14 +701,14 @@ body {
   min-width: 210px;
   max-width: 210px;
   padding: 10px 14px;
-  background: #1f2937;
-  color: var(--text-inverse);
-  border-right: 2px solid var(--border-medium);
-  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 1px 0 0 var(--border-glass);
   text-align: left;
   vertical-align: middle;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -727,8 +724,8 @@ body {
   overflow: hidden;
   background: var(--bg-surface);
   color: var(--text-primary);
-  border-right: 2px solid var(--border-medium);
   border-bottom: 1px solid var(--border-glass);
+  box-shadow: 1px 0 0 var(--border-glass);
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -740,7 +737,6 @@ body {
   height: 35px;
   padding: 8px 10px;
   background: var(--bg-surface);
-  border-right: 1px solid var(--border-glass);
   border-bottom: 1px solid var(--border-glass);
   text-align: right;
   white-space: nowrap;
@@ -749,7 +745,7 @@ body {
 }
 
 .pnl-value-cell.pnl-yoy-cell {
-  background: #fafafa;
+  background: var(--bg-glass-light);
 }
 
 .pnl-period-header.pnl-concept-total,
@@ -759,17 +755,22 @@ body {
 
 .pnl-period-header.pnl-portfolio-total,
 .pnl-value-cell.pnl-portfolio-total {
-  background: #eef2f7;
+  background: var(--bg-secondary);
   font-weight: 600;
 }
 
+.pnl-period-header.pnl-current-header,
+.pnl-value-cell.pnl-current-cell {
+  background: var(--accent-primary-dim);
+}
+
 .pnl-group-start {
-  border-left: 2px solid var(--border-medium) !important;
+  border-left: 1px solid var(--border-medium) !important;
 }
 
 .pnl-section-start > .pnl-row-label,
 .pnl-section-start > .pnl-value-cell {
-  border-top: 2px solid var(--border-medium);
+  border-top: 1px solid var(--border-medium);
 }
 
 .pnl-emphasis-row > .pnl-row-label,
@@ -783,11 +784,11 @@ body {
 }
 
 .pnl-table tbody tr:hover > .pnl-value-cell.pnl-concept-total {
-  background: rgba(33, 150, 243, 0.14);
+  background: var(--accent-primary-glow);
 }
 
 .pnl-table tbody tr:hover > .pnl-value-cell.pnl-portfolio-total {
-  background: #e5eaf1;
+  background: var(--border-glass);
 }
 
 @media (max-width: 900px) {
