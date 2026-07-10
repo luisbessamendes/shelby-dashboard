@@ -44,6 +44,8 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={`nav-item${isActive ? ' active' : ''}`}
+              aria-label={item.label}
+              title={item.label}
             >
               <span className="nav-icon">{ICONS[item.icon]}</span>
               <span>{item.label}</span>
@@ -59,6 +61,8 @@ export default function Sidebar() {
         <Link
           href={uploadItem.href}
           className={`nav-item${pathname === uploadItem.href ? ' active' : ''}`}
+          aria-label={uploadItem.label}
+          title={uploadItem.label}
         >
           <span className="nav-icon">{ICONS[uploadItem.icon]}</span>
           <span>{uploadItem.label}</span>

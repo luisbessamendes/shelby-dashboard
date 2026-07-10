@@ -1,0 +1,171 @@
+import { aggregate, filterByPeriod } from './calculations';
+import { MONTH_SHORT_NAMES } from './constants';
+import type { AggregatedMetrics, PeriodBasis, StoreMonthRecord } from './types';
+
+export type PnlValuePeriodKey = 'fyOlder' | 'fyRecent' | 'currentPrior' | 'current';
+
+export interface PnlColumnDefinition {
+  key: 'fyOlder' | 'fyRecent' | 'fyYoy' | 'current' | 'currentYoy';
+  label: string;
+  valueKey: PnlValuePeriodKey;
+  compareKey?: PnlValuePeriodKey;
+}
+
+export interface PnlGroupComparison {
+  id: string;
+  label: string;
+  kind: 'store' | 'concept-total' | 'portfolio-total';
+  values: Record<PnlValuePeriodKey, AggregatedMetrics | null>;
+}
+
+export interface PnlComparisonModel {
+  columns: PnlColumnDefinition[];
+  groups: PnlGroupComparison[];
+  notice: string | null;
+}
+
+interface PnlGroupSource {
+  id: string;
+  label: string;
+  kind: PnlGroupComparison['kind'];
+  records: StoreMonthRecord[];
+}
+
+function monthIndex(year: number, month: number): number {
+  return year * 12 + month;
+}
+
+function hasCompleteLtmWindow(records: StoreMonthRecord[], year: number, month: number): boolean {
+  const end = monthIndex(year, month);
+  const start = end - 11;
+  const months = new Set<number>();
+
+  for (const record of records) {
+    const index = monthIndex(record.year, record.month);
+    if (index >= start && index <= end) months.add(index);
+  }
+
+  return months.size === 12;
+}
+
+function currentPeriodLabel(basis: PeriodBasis, year: number, month: number): string {
+  const monthName = MONTH_SHORT_NAMES[month];
+  if (basis === 'ytd') return `YTD ${monthName} ${year}`;
+  if (basis === 'ltm') return `LTM ${monthName} ${year}`;
+  return `${monthName} ${year}`;
+}
+
+function periodRecords(
+  records: StoreMonthRecord[],
+  key: PnlValuePeriodKey,
+  basis: PeriodBasis,
+  year: number,
+  month: number,
+): StoreMonthRecord[] {
+  if (key === 'fyOlder') return records.filter(record => record.year === year - 2);
+  if (key === 'fyRecent') return records.filter(record => record.year === year - 1);
+  if (key === 'currentPrior') return filterByPeriod(records, basis, year - 1, month);
+  return filterByPeriod(records, basis, year, month);
+}
+
+function buildGroupSources(records: StoreMonthRecord[]): PnlGroupSource[] {
+  const byConcept = new Map<string, Map<string, StoreMonthRecord[]>>();
+
+  for (const record of records) {
+    const conceptStores = byConcept.get(record.concept) ?? new Map<string, StoreMonthRecord[]>();
+    const storeRecords = conceptStores.get(record.store) ?? [];
+    storeRecords.push(record);
+    conceptStores.set(record.store, storeRecords);
+    byConcept.set(record.concept, conceptStores);
+  }
+
+  const collator = new Intl.Collator('en', { sensitivity: 'base' });
+  const groups: PnlGroupSource[] = [];
+
+  for (const concept of [...byConcept.keys()].sort(collator.compare)) {
+    const stores = byConcept.get(concept)!;
+    const conceptRecords: StoreMonthRecord[] = [];
+
+    for (const store of [...stores.keys()].sort(collator.compare)) {
+      const storeRecords = stores.get(store)!;
+      conceptRecords.push(...storeRecords);
+      groups.push({
+        id: `store:${concept}:${store}`,
+        label: `${concept} \u00b7 ${store}`,
+        kind: 'store',
+        records: storeRecords,
+      });
+    }
+
+    groups.push({
+      id: `concept:${concept}`,
+      label: `${concept} \u00b7 Total`,
+      kind: 'concept-total',
+      records: conceptRecords,
+    });
+  }
+
+  groups.push({
+    id: 'portfolio-total',
+    label: 'Portfolio \u00b7 Total',
+    kind: 'portfolio-total',
+    records,
+  });
+
+  return groups;
+}
+
+export function buildPnlComparison(
+  records: StoreMonthRecord[],
+  basis: PeriodBasis,
+  year: number,
+  month: number,
+): PnlComparisonModel {
+  const currentLtmComplete = basis !== 'ltm' || hasCompleteLtmWindow(records, year, month);
+  const priorLtmComplete = basis !== 'ltm' || hasCompleteLtmWindow(records, year - 1, month);
+  const periodAvailability: Record<PnlValuePeriodKey, boolean> = {
+    fyOlder: true,
+    fyRecent: true,
+    currentPrior: priorLtmComplete,
+    current: currentLtmComplete,
+  };
+
+  const columns: PnlColumnDefinition[] = [
+    { key: 'fyOlder', label: `FY ${year - 2}`, valueKey: 'fyOlder' },
+    { key: 'fyRecent', label: `FY ${year - 1}`, valueKey: 'fyRecent' },
+    { key: 'fyYoy', label: 'YoY %', valueKey: 'fyRecent', compareKey: 'fyOlder' },
+    { key: 'current', label: currentPeriodLabel(basis, year, month), valueKey: 'current' },
+    { key: 'currentYoy', label: 'YoY %', valueKey: 'current', compareKey: 'currentPrior' },
+  ];
+
+  const groups = buildGroupSources(records).map(group => {
+    const values = {} as Record<PnlValuePeriodKey, AggregatedMetrics | null>;
+    const keys: PnlValuePeriodKey[] = ['fyOlder', 'fyRecent', 'currentPrior', 'current'];
+
+    for (const key of keys) {
+      if (!periodAvailability[key]) {
+        values[key] = null;
+        continue;
+      }
+
+      const subset = periodRecords(group.records, key, basis, year, month);
+      values[key] = subset.length > 0 ? aggregate(subset) : null;
+    }
+
+    return {
+      id: group.id,
+      label: group.label,
+      kind: group.kind,
+      values,
+    };
+  });
+
+  let notice: string | null = null;
+  if (basis === 'ltm' && !currentLtmComplete) {
+    notice = `${currentPeriodLabel(basis, year, month)} is unavailable because the filtered data does not contain 12 calendar months.`;
+  } else if (basis === 'ltm' && !priorLtmComplete) {
+    notice = `Prior-year LTM history is incomplete, so current-period YoY values are shown as unavailable.`;
+  }
+
+  return { columns, groups, notice };
+}

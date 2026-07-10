@@ -91,6 +91,7 @@ export const DIMENSION_FIELDS = [
 export const NAV_ITEMS = [
   { href: '/overview', label: 'Portfolio Overview', icon: 'dashboard' },
   { href: '/performance', label: 'Performance Table', icon: 'table' },
+  { href: '/pnl', label: 'P&L Analysis', icon: 'table' },
   { href: '/segments', label: 'Segment Analysis', icon: 'segments' },
   { href: '/trends', label: 'Trend Analysis', icon: 'trending' },
   { href: '/margins', label: 'Margin Diagnostics', icon: 'diagnostics' },

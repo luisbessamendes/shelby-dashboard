@@ -558,6 +558,322 @@ body {
   border-spacing: 0;
 }
 
+.pnl-page {
+  width: calc(100vw - var(--sidebar-width) - (var(--page-padding) * 2));
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.pnl-table-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.pnl-table-summary {
+  min-height: 48px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.pnl-table-summary-period {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+
+.pnl-notice {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--accent-warning-dim);
+  color: #92400e;
+  font-size: 0.8rem;
+}
+
+.pnl-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 230px);
+  min-height: 420px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.pnl-table-wrapper:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.pnl-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.76rem;
+}
+
+.pnl-table col.pnl-metric-col {
+  width: 210px;
+}
+
+.pnl-table col.pnl-value-col {
+  width: 116px;
+}
+
+.pnl-table col.pnl-yoy-col {
+  width: 88px;
+}
+
+.pnl-table thead {
+  position: static;
+}
+
+.pnl-table th {
+  cursor: default;
+  user-select: text;
+}
+
+.pnl-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  height: 34px;
+  padding: 7px 12px;
+  overflow: hidden;
+  background: var(--accent-secondary);
+  color: var(--text-inverse);
+  border-right: 2px solid rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pnl-group-header.pnl-concept-total {
+  background: var(--accent-primary);
+}
+
+.pnl-group-header.pnl-portfolio-total {
+  background: #1f2937;
+}
+
+.pnl-period-header {
+  position: sticky;
+  top: 34px;
+  z-index: 3;
+  height: 34px;
+  padding: 7px 9px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-medium);
+  text-align: right;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pnl-period-header.pnl-yoy-header {
+  color: var(--accent-primary);
+}
+
+.pnl-period-header.pnl-current-header,
+.pnl-value-cell.pnl-current-cell {
+  background: #f0f7ff;
+}
+
+.pnl-metric-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 7;
+  width: 210px;
+  min-width: 210px;
+  max-width: 210px;
+  padding: 10px 14px;
+  background: #1f2937;
+  color: var(--text-inverse);
+  border-right: 2px solid var(--border-medium);
+  border-bottom: 1px solid var(--border-medium);
+  text-align: left;
+  vertical-align: middle;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pnl-row-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 210px;
+  min-width: 210px;
+  max-width: 210px;
+  padding: 8px 14px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-right: 2px solid var(--border-medium);
+  border-bottom: 1px solid var(--border-glass);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.pnl-value-cell {
+  height: 35px;
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-glass);
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.pnl-value-cell.pnl-yoy-cell {
+  background: #fafafa;
+}
+
+.pnl-period-header.pnl-concept-total,
+.pnl-value-cell.pnl-concept-total {
+  background: var(--accent-primary-dim);
+}
+
+.pnl-period-header.pnl-portfolio-total,
+.pnl-value-cell.pnl-portfolio-total {
+  background: #eef2f7;
+  font-weight: 600;
+}
+
+.pnl-group-start {
+  border-left: 2px solid var(--border-medium) !important;
+}
+
+.pnl-section-start > .pnl-row-label,
+.pnl-section-start > .pnl-value-cell {
+  border-top: 2px solid var(--border-medium);
+}
+
+.pnl-emphasis-row > .pnl-row-label,
+.pnl-emphasis-row > .pnl-value-cell {
+  font-weight: 600;
+}
+
+.pnl-table tbody tr:hover > .pnl-row-label,
+.pnl-table tbody tr:hover > .pnl-value-cell {
+  background: var(--bg-surface-hover);
+}
+
+.pnl-table tbody tr:hover > .pnl-value-cell.pnl-concept-total {
+  background: rgba(33, 150, 243, 0.14);
+}
+
+.pnl-table tbody tr:hover > .pnl-value-cell.pnl-portfolio-total {
+  background: #e5eaf1;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --sidebar-width: 64px;
+    --page-padding: 12px;
+  }
+
+  .sidebar-header {
+    display: none;
+  }
+
+  .sidebar-nav {
+    padding: 8px 6px;
+    gap: 4px;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 10px 8px;
+  }
+
+  .nav-item > span:not(.nav-icon),
+  .nav-phase2-badge {
+    display: none;
+  }
+
+  .nav-item .nav-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 1rem;
+  }
+
+  .main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100vw - var(--sidebar-width));
+    max-width: calc(100vw - var(--sidebar-width));
+  }
+
+  .page-wrapper {
+    overflow-x: hidden;
+  }
+
+  .filter-bar {
+    padding: 8px var(--page-padding);
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .filter-group > .filter-select {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+  }
+
+  .period-btn {
+    padding: 6px 10px;
+  }
+
+  .filter-clear {
+    margin-left: 0;
+  }
+
+  .pnl-table-wrapper {
+    max-height: calc(100vh - 250px);
+    min-height: 360px;
+  }
+
+  .pnl-table col.pnl-metric-col,
+  .pnl-metric-header,
+  .pnl-row-label {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+  }
+
+  .pnl-table-summary {
+    flex-wrap: wrap;
+  }
+
+  .pnl-table-summary-period {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
 .data-table thead {
   position: sticky;
   top: 0;
