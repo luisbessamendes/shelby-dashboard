@@ -662,7 +662,7 @@ body {
 }
 
 .pnl-group-header.pnl-concept-total {
-  background: var(--accent-primary-dim);
+  background: linear-gradient(var(--accent-primary-dim), var(--accent-primary-dim)), var(--bg-surface);
   color: var(--accent-primary);
 }
 
@@ -748,7 +748,10 @@ body {
   background: var(--bg-glass-light);
 }
 
-.pnl-period-header.pnl-concept-total,
+.pnl-period-header.pnl-concept-total {
+  background: linear-gradient(var(--accent-primary-dim), var(--accent-primary-dim)), var(--bg-surface);
+}
+
 .pnl-value-cell.pnl-concept-total {
   background: var(--accent-primary-dim);
 }
@@ -759,7 +762,10 @@ body {
   font-weight: 600;
 }
 
-.pnl-period-header.pnl-current-header,
+.pnl-period-header.pnl-current-header {
+  background: linear-gradient(var(--accent-primary-dim), var(--accent-primary-dim)), var(--bg-surface);
+}
+
 .pnl-value-cell.pnl-current-cell {
   background: var(--accent-primary-dim);
 }
