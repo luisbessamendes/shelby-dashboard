@@ -1,0 +1,166 @@
+.analysis {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.period strong {
+  color: #92400e;
+}
+
+.cohorts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-glass);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.cohorts strong {
+  margin-left: 8px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.cohorts h3 {
+  flex-basis: 100%;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.details {
+  padding: 10px 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.details summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.details p {
+  max-width: 1000px;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+.auditScroll {
+  max-height: 360px;
+  overflow: auto;
+  margin-top: 12px;
+}
+
+.auditScroll table {
+  min-width: 900px;
+}
+
+.auditScroll .auditBasis {
+  min-width: 360px;
+  white-space: normal;
+}
+
+.auditBasis div {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.issueList {
+  padding-left: 20px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.tableContainer {
+  margin-top: 16px;
+  border-radius: 8px;
+}
+
+.summary {
+  flex-wrap: wrap;
+}
+
+.table .valueColumn {
+  width: 132px;
+}
+
+.table thead th {
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.chartSection {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-glass);
+  min-width: 0;
+}
+
+.chartHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.chartHeading h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chartHeading span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.chartScroll {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.axisControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.axisControls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.axisControls input {
+  accent-color: var(--accent-primary);
+}
+
+.chartScroll:focus-visible {
+  outline: 2px solid var(--accent-primary);
+}
+
+.tooltip {
+  padding: 12px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  font-size: 0.8rem;
+}

@@ -7,11 +7,12 @@ import {
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
 import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
+import PerimeterAnalysis from '@/components/segments/PerimeterAnalysis';
 import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregateByDimension } from '@/lib/calculations';
 import { formatCurrency, formatCompact, formatPercent, formatNumber } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
-type Dimension = 'concept' | 'region' | 'store_type' | 'location' | 'legal_entity';
+type Dimension = 'concept' | 'region' | 'store_type' | 'location' | 'legal_entity' | 'perimeter';
 
 const DIMENSIONS: { value: Dimension; label: string }[] = [
   { value: 'concept', label: 'Concept / Brand' },
@@ -19,6 +20,7 @@ const DIMENSIONS: { value: Dimension; label: string }[] = [
   { value: 'store_type', label: 'Store Type' },
   { value: 'location', label: 'Location' },
   { value: 'legal_entity', label: 'Legal Entity' },
+  { value: 'perimeter', label: 'L4L / Perimeter' },
 ];
 
 export default function SegmentsPage() {
@@ -46,6 +48,7 @@ export default function SegmentsPage() {
   }, [filteredData, filters]);
 
   const segmentData = useMemo(() => {
+    if (dimension === 'perimeter') return [];
     const map = aggregateByDimension(periodData, dimension);
     const arr = Array.from(map.entries())
       .map(([name, agg]) => ({ name, ...agg }));
@@ -81,7 +84,7 @@ export default function SegmentsPage() {
 
   if (isLoading) return <div className="loading-spinner"><div className="spinner" /></div>;
 
-  if (filteredData.length === 0) {
+  if (dimension !== 'perimeter' && filteredData.length === 0) {
     return (
       <div className="empty-state">
         <div className="empty-state-icon">🏷️</div>
@@ -99,10 +102,11 @@ export default function SegmentsPage() {
             <h1 className="page-title">Segment Analysis</h1>
             <p className="page-description">Aggregate performance by business dimension</p>
           </div>
-          <ProfitMetricSelect value={profitMetric} onChange={setProfitMetric} />
+          {dimension !== 'perimeter' && <ProfitMetricSelect value={profitMetric} onChange={setProfitMetric} />}
           <div className="filter-group">
-            <label className="filter-label">Dimension</label>
+            <label className="filter-label" htmlFor="segment-dimension">Dimension</label>
             <select
+              id="segment-dimension"
               className="filter-select"
               value={dimension}
               onChange={e => setDimension(e.target.value as Dimension)}
@@ -116,6 +120,7 @@ export default function SegmentsPage() {
         </div>
       </div>
 
+      {dimension === 'perimeter' ? <PerimeterAnalysis /> : <>
       {/* Segment Table */}
       <div className="data-table-container mb-24">
         <div className="data-table-wrapper segment-table-wrapper">
@@ -258,6 +263,7 @@ export default function SegmentsPage() {
           </ResponsiveContainer>
         </div>
       </div>
+      </>}
     </div>
   );
 }
