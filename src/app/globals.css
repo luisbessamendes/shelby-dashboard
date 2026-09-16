@@ -454,12 +454,13 @@ body {
 /* ── Charts ──────────────────────────────────────────── */
 .chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(450px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
 
 .chart-container {
+  min-width: 0;
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
@@ -468,6 +469,8 @@ body {
 }
 
 .chart-title {
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);

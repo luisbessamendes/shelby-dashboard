@@ -6,9 +6,10 @@ import {
   Cell, ScatterChart, Scatter
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import ProfitWaterfall from '@/components/ui/ProfitWaterfall';
 import KPICard from '@/components/ui/KPICard';
 import { filterByPeriod, aggregate, aggregatePerStore, aggregateByDimension } from '@/lib/calculations';
-import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatCompact } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
 export default function InvestmentPage() {
@@ -25,44 +26,6 @@ export default function InvestmentPage() {
     const map = aggregatePerStore(periodData);
     return Array.from(map.values());
   }, [periodData]);
-
-  // Waterfall Calculation Logic (EBITDA -> FCFF)
-  const waterfallData = useMemo(() => {
-    let current = 0;
-    const items = [
-      { name: 'EBITDA', raw: portfolio.totalEbitda, isTotal: true, color: portfolio.totalEbitda >= 0 ? '#10b981' : '#ef4444' },
-      { name: '- CAPEX', raw: -portfolio.totalCapex, color: '#f59e0b' },
-      { name: '- CIT', raw: -portfolio.totalCit, color: '#ef4444' },
-      { name: '= FCFF', raw: portfolio.totalFcff, isTotal: true, color: portfolio.totalFcff >= 0 ? '#10b981' : '#ef4444' },
-    ];
-
-    return items.map(item => {
-      let base = 0;
-      let val = 0;
-
-      if (item.isTotal) {
-        base = 0;
-        val = item.raw;
-        current = item.raw; // Reset current to the total
-      } else {
-        const start = current;
-        const end = current + item.raw;
-        base = Math.min(start, end);
-        val = Math.abs(item.raw);
-        current = end;
-      }
-
-      const pct = portfolio.totalTurnover !== 0 ? Math.abs(item.raw) / portfolio.totalTurnover : 0;
-
-      return {
-        ...item,
-        base,
-        displayValue: val,
-        tooltipValue: item.raw,
-        pct
-      };
-    });
-  }, [portfolio]);
 
   // FCFF % by Region
   const fcffByRegion = useMemo(() => {
@@ -112,6 +75,8 @@ export default function InvestmentPage() {
       </div>
 
       <div className="kpi-grid">
+        <KPICard label="Store EBITDAR" value={portfolio.totalStoreEbitdar} format="currency" />
+        <KPICard label="Store EBITDA" value={portfolio.totalStoreEbitda} format="currency" />
         <KPICard 
           label="Total EBITDA" 
           value={portfolio.totalEbitda} 
@@ -147,45 +112,8 @@ export default function InvestmentPage() {
       <div className="chart-grid">
         {/* EBITDA to FCFF Waterfall */}
         <div className="chart-container">
-          <div className="chart-title">Cash Flow Bridge: EBITDA → FCFF</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={waterfallData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
-              <Tooltip
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                content={({ active, payload }: any) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="custom-tooltip" style={{ 
-                        background: '#111827', 
-                        border: '1px solid rgba(255,255,255,0.1)', 
-                        padding: '12px', 
-                        borderRadius: '8px' 
-                      }}>
-                        <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: data.color }}>
-                          <span style={{ fontSize: 13 }}>{formatCurrency(data.tooltipValue)}</span>
-                          <span style={{ fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {formatPercent(data.pct)} of Turnover
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="base" stackId="a" fill="transparent" fillOpacity={0} />
-              <Bar dataKey="displayValue" stackId="a" radius={[4, 4, 4, 4]}>
-                {waterfallData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="chart-title">Cash Flow Bridge: Store EBITDAR to FCFF</div>
+          <ProfitWaterfall metrics={portfolio} mode="cash" />
         </div>
 
         {/* FCFF % by Region */}

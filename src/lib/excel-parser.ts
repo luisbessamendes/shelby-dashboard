@@ -3,12 +3,13 @@
  * ──────────────────────────────────────────────────────── */
 
 import * as XLSX from 'xlsx';
-import { EXCEL_COLUMN_MAP, SKIP_COLUMNS, MONTH_NAME_TO_NUMBER } from './constants';
+import { EXCEL_COLUMN_MAP, SKIP_COLUMNS, MONTH_NAME_TO_NUMBER, NUMERIC_FIELDS } from './constants';
 import type { StoreMonthRecord } from './types';
 
 export interface ParseResult {
   records: StoreMonthRecord[];
   errors: string[];
+  warnings: string[];
   skippedRows: number;
 }
 
@@ -18,28 +19,30 @@ export interface ParseResult {
  */
 export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
   const errors: string[] = [];
+  const warnings: string[] = [];
   let skippedRows = 0;
 
   const wb = XLSX.read(buffer, { type: 'array' });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) {
-    return { records: [], errors: ['No sheets found in workbook'], skippedRows: 0 };
+    return { records: [], errors: ['No sheets found in workbook'], warnings, skippedRows: 0 };
   }
 
   const ws = wb.Sheets[sheetName];
   const rawData: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws, { defval: null });
 
   if (rawData.length === 0) {
-    return { records: [], errors: ['Sheet is empty'], skippedRows: 0 };
+    return { records: [], errors: ['Sheet is empty'], warnings, skippedRows: 0 };
   }
 
   // Validate headers
   const headers = Object.keys(rawData[0]);
-  const requiredHeaders = ['Store', 'Year', 'Month', 'Sales'];
-  const missing = requiredHeaders.filter(h => !headers.includes(h));
+  const mappedHeaders = new Set(headers.map(header => EXCEL_COLUMN_MAP[header.trim()]));
+  const requiredHeaders = ['store', 'year', 'month', 'sales', 'vat', 'raw_materials', 'staff', 'rents', 'utilities', 'maintenance', 'banking_costs', 'others', 'capex', 'cit', 'fcff'];
+  const missing = requiredHeaders.filter(field => !mappedHeaders.has(field));
   if (missing.length > 0) {
     errors.push(`Missing required columns: ${missing.join(', ')}`);
-    return { records: [], errors, skippedRows: 0 };
+    return { records: [], errors, warnings, skippedRows: 0 };
   }
 
   const records: StoreMonthRecord[] = [];
@@ -48,53 +51,101 @@ export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
     const row = rawData[i];
     const rowNum = i + 2; // 1-indexed, accounting for header
 
-    // Build the record by mapping Excel columns → DB fields
     const record: Record<string, unknown> = {};
+    const supplied = new Set<string>();
+    let suppliedEbitdar: number | undefined;
+    let suppliedPrimeCost: number | undefined;
+    let invalid = false;
     let hasData = false;
 
-    for (const [excelCol, value] of Object.entries(row)) {
-      // Skip percentage columns
-      if (SKIP_COLUMNS.has(excelCol)) continue;
-
+    for (const [header, value] of Object.entries(row)) {
+      const excelCol = header.trim();
+      if (SKIP_COLUMNS.has(excelCol) || excelCol.includes('%')) continue;
+      const derived = excelCol === 'Store EBITDAR' || excelCol === 'Prime Cost';
       const dbField = EXCEL_COLUMN_MAP[excelCol];
-      if (!dbField) continue; // Unknown column, skip
-
+      if (!dbField && !derived) continue;
+      const blank = value == null || String(value).trim() === '';
+      if (blank) continue;
+      let parsed: string | number;
       if (dbField === 'month') {
-        // Convert month name to number
-        const monthStr = String(value ?? '').toLowerCase().trim();
-        const monthNum = MONTH_NAME_TO_NUMBER[monthStr];
-        if (!monthNum) {
+        const month = MONTH_NAME_TO_NUMBER[String(value).toLowerCase().trim()] ?? Number(value);
+        if (!Number.isInteger(month) || month < 1 || month > 12) {
           errors.push(`Row ${rowNum}: Invalid month "${value}"`);
+          invalid = true;
           continue;
         }
-        record[dbField] = monthNum;
+        parsed = month;
       } else if (['store', 'code', 'concept', 'region', 'store_type', 'location', 'legal_entity'].includes(dbField)) {
-        record[dbField] = String(value ?? '').trim();
+        parsed = String(value).trim();
       } else {
-        // Numeric field
-        const num = Number(value);
-        if (isNaN(num)) {
-          record[dbField] = 0;
-        } else {
-          record[dbField] = num;
-          if (dbField !== 'year' && num !== 0) hasData = true;
+        parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+          errors.push(`Row ${rowNum}: Invalid number in "${excelCol}"`);
+          invalid = true;
+          continue;
         }
+        if (dbField !== 'year') hasData = true;
       }
+      if (derived) {
+        if (excelCol === 'Store EBITDAR') suppliedEbitdar = parsed as number;
+        else suppliedPrimeCost = parsed as number;
+        continue;
+      }
+      if (supplied.has(dbField) && record[dbField] !== parsed) {
+        errors.push(`Row ${rowNum}: Conflicting values for "${excelCol}" and its equivalent column`);
+        invalid = true;
+      }
+      record[dbField] = parsed;
+      supplied.add(dbField);
     }
 
-    // Validate required fields
-    if (!record.store || !record.year || !record.month) {
-      errors.push(`Row ${rowNum}: Missing store, year, or month`);
+    if (!hasData && !invalid) {
+      skippedRows++;
+      continue;
+    }
+    if (!record.store || !Number.isInteger(record.year) || !record.month || !supplied.has('sales')) {
+      errors.push(`Row ${rowNum}: Missing or invalid store, year, month, or gross sales`);
+      invalid = true;
+    }
+    if (!supplied.has('fcff')) {
+      errors.push(`Row ${rowNum}: FCFF is missing. Supply a value (including zero) to avoid replacing existing cash-flow data.`);
+      invalid = true;
+    }
+    if (invalid) {
       skippedRows++;
       continue;
     }
 
-    // Newer templates provide Turnover. Older templates do not, so derive it.
-    const sales = Number(record.sales ?? 0);
-    const vat = Number(record.vat ?? 0);
-    const turnover = Number(record.turnover);
-    if (!Number.isFinite(turnover) || (turnover === 0 && sales - vat !== 0)) {
-      record.turnover = sales - vat;
+    // Expense blanks in the flat upload template mean no expense; supplied zeros stay zeros.
+    for (const field of NUMERIC_FIELDS) {
+      if (record[field] == null) record[field] = 0;
+    }
+    const num = (field: string) => Number(record[field]);
+    if (!supplied.has('turnover')) record.turnover = num('sales') - num('vat');
+    const operatingCosts = num('raw_materials') + num('staff') + num('utilities') + num('maintenance') + num('banking_costs') + num('others');
+    const calculatedEbitdar = num('turnover') - operatingCosts;
+    if (!supplied.has('store_contribution')) record.store_contribution = (suppliedEbitdar ?? calculatedEbitdar) - num('rents');
+    if (!supplied.has('admin_costs')) {
+      if (!supplied.has('ebitda')) {
+        errors.push(`Row ${rowNum}: Supply Headquarter & Admin. or EBITDA to identify headquarters costs`);
+        skippedRows++;
+        continue;
+      }
+      record.admin_costs = num('store_contribution') - num('ebitda');
+    }
+    if (!supplied.has('ebitda')) record.ebitda = num('store_contribution') - num('admin_costs');
+
+    const check = (label: string, actual: number, expected: number) => {
+      if (Math.abs(actual - expected) > 1) warnings.push(`Row ${rowNum} (${record.store}): ${label} differs from its components by ${(actual - expected).toFixed(2)} EUR. Supplied values are preserved.`);
+    };
+    check('Turnover', num('turnover'), num('sales') - num('vat'));
+    check('Store EBITDA', num('store_contribution'), calculatedEbitdar - num('rents'));
+    check('EBITDA', num('ebitda'), num('store_contribution') - num('admin_costs'));
+    check('FCFF', num('fcff'), num('ebitda') - num('capex') - num('cit'));
+    if (suppliedEbitdar !== undefined) check('Store EBITDAR', suppliedEbitdar, num('store_contribution') + num('rents'));
+    if (suppliedPrimeCost !== undefined) check('Prime Cost', suppliedPrimeCost, num('raw_materials') + num('staff'));
+    for (const field of ['raw_materials', 'staff', 'rents', 'utilities', 'maintenance', 'banking_costs', 'others', 'admin_costs']) {
+      if (num(field) < 0) warnings.push(`Row ${rowNum} (${record.store}): Negative ${field} is treated as a credit, not an expense deduction.`);
     }
 
     // Auto-correct corrupted spreadsheet formulas
@@ -135,5 +186,5 @@ export function parseExcelFile(buffer: ArrayBuffer): ParseResult {
     }
   }
 
-  return { records: dedupedRecords, errors, skippedRows };
+  return { records: dedupedRecords, errors, warnings, skippedRows };
 }

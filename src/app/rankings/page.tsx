@@ -1,17 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, ScatterChart, Scatter
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
 import KPICard from '@/components/ui/KPICard';
-import { filterByPeriod, aggregatePerStore } from '@/lib/calculations';
+import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregatePerStore } from '@/lib/calculations';
 import { formatCurrency, formatCompact } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
 export default function RankingsPage() {
+  const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  const profit = PROFIT_METRICS[profitMetric];
   const { filteredData, filters, isLoading } = useFilters();
 
   const periodData = useMemo(() => {
@@ -31,9 +34,9 @@ export default function RankingsPage() {
 
   const ebitdaPctSorted = useMemo(() => {
     // Only sort stores that have significant turnover to avoid division by near-zero anomalies
-    const valid = storeAggs.filter(s => s.totalTurnover > 1000);
-    return valid.sort((a, b) => (b.ebitdaPct ?? 0) - (a.ebitdaPct ?? 0));
-  }, [storeAggs]);
+    const valid = storeAggs.filter(s => s.totalTurnover > 1000 && s[profit.ratio] !== null);
+    return valid.sort((a, b) => (b[profit.ratio] ?? 0) - (a[profit.ratio] ?? 0));
+  }, [storeAggs, profit.ratio]);
 
   // KPIs
   const topTurnoverStore = turnoverSorted[0];
@@ -49,13 +52,13 @@ export default function RankingsPage() {
 
   // Scatters
   const turnoverVsEbitda = useMemo(
-    () => storeAggs.map((s, i) => ({
+    () => storeAggs.filter(s => s[profit.ratio] !== null).map((s, i) => ({
       name: s.store,
       x: s.totalTurnover,
-      y: (s.ebitdaPct ?? 0) * 100,
+      y: (s[profit.ratio] ?? 0) * 100,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
-    [storeAggs]
+    [storeAggs, profit.ratio]
   );
 
   const staffVsRawMat = useMemo(
@@ -83,7 +86,10 @@ export default function RankingsPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Rankings & Outliers</h1>
+        <div className="flex-between" style={{ flexWrap: 'wrap', gap: 16 }}>
+          <h1 className="page-title">Rankings & Outliers</h1>
+          <ProfitMetricSelect value={profitMetric} onChange={setProfitMetric} />
+        </div>
         <p className="page-description">Identify extreme performers and operational anomalies across the portfolio</p>
       </div>
 
@@ -101,14 +107,14 @@ export default function RankingsPage() {
           icon={`⚠️ ${bottomTurnoverStore?.store ?? ''}`} 
         />
         <KPICard 
-          label="Top Store (EBITDA %)" 
-          value={topEbitdaStore?.ebitdaPct ?? 0} 
+          label={`Top Store (${profit.label} %)`}
+          value={topEbitdaStore?.[profit.ratio] ?? 0}
           format="percent" 
           icon={`👑 ${topEbitdaStore?.store ?? ''}`} 
         />
         <KPICard 
-          label="Bottom Store (EBITDA %)" 
-          value={bottomEbitdaStore?.ebitdaPct ?? 0} 
+          label={`Bottom Store (${profit.label} %)`}
+          value={bottomEbitdaStore?.[profit.ratio] ?? 0}
           format="percent" 
           icon={`🚩 ${bottomEbitdaStore?.store ?? ''}`} 
         />
@@ -173,10 +179,10 @@ export default function RankingsPage() {
         </div>
       </div>
 
-      {/* EBITDA % Rankings */}
+      {/* {profit.label} % Rankings */}
       <div className="chart-grid">
         <div className="chart-container">
-          <div className="chart-title">Top 10 Stores by EBITDA %</div>
+          <div className="chart-title">Top 10 Stores by {profit.label} %</div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={top10Ebitda} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -191,16 +197,16 @@ export default function RankingsPage() {
                     return (
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.store}</div>
-                        <div style={{ color: '#10b981' }}>EBITDA %: {((data.ebitdaPct ?? 0) * 100).toFixed(1)}%</div>
+                        <div style={{ color: '#10b981' }}>{profit.label} %: {((data[profit.ratio] ?? 0) * 100).toFixed(1)}%</div>
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Bar dataKey="ebitdaPct" fill="#10b981">
+              <Bar dataKey={profit.ratio} fill="#10b981">
                 {top10Ebitda.map((entry, idx) => (
-                  <Cell key={idx} fill={(entry.ebitdaPct || 0) >= 0 ? '#10b981' : '#ef4444'} />
+                  <Cell key={idx} fill={(entry[profit.ratio] || 0) >= 0 ? '#10b981' : '#ef4444'} />
                 ))}
               </Bar>
             </BarChart>
@@ -208,7 +214,7 @@ export default function RankingsPage() {
         </div>
 
         <div className="chart-container">
-          <div className="chart-title">Bottom 10 Stores by EBITDA %</div>
+          <div className="chart-title">Bottom 10 Stores by {profit.label} %</div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={bottom10Ebitda} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -223,16 +229,16 @@ export default function RankingsPage() {
                     return (
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.store}</div>
-                        <div style={{ color: '#ef4444' }}>EBITDA %: {((data.ebitdaPct ?? 0) * 100).toFixed(1)}%</div>
+                        <div style={{ color: '#ef4444' }}>{profit.label} %: {((data[profit.ratio] ?? 0) * 100).toFixed(1)}%</div>
                       </div>
                     );
                   }
                   return null;
                 }}
               />
-              <Bar dataKey="ebitdaPct">
+              <Bar dataKey={profit.ratio}>
                 {bottom10Ebitda.map((entry, idx) => (
-                  <Cell key={idx} fill={(entry.ebitdaPct || 0) >= 0 ? '#10b981' : '#ef4444'} />
+                  <Cell key={idx} fill={(entry[profit.ratio] || 0) >= 0 ? '#10b981' : '#ef4444'} />
                 ))}
               </Bar>
             </BarChart>
@@ -243,12 +249,12 @@ export default function RankingsPage() {
       {/* Outlier Scatters */}
       <div className="chart-grid">
         <div className="chart-container">
-          <div className="chart-title">Outliers: Volume vs Margin</div>
+          <div className="chart-title">Outliers: Turnover vs {profit.label} %</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
               <XAxis type="number" dataKey="x" name="Turnover" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
-              <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
+              <YAxis type="number" dataKey="y" name={`${profit.label} %`} tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 content={({ active, payload }: any) => {
@@ -258,7 +264,7 @@ export default function RankingsPage() {
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
                         <div style={{ color: '#fff', fontSize: '12px' }}>Turnover: {formatCurrency(data.x)}</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA: {data.y.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>{profit.label} %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
                   }
@@ -275,12 +281,12 @@ export default function RankingsPage() {
         </div>
 
         <div className="chart-container">
-          <div className="chart-title">Outliers: Staff % vs Raw Materials %</div>
+          <div className="chart-title">Outliers: Staff % vs Food Cost %</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
               <XAxis type="number" dataKey="x" name="Staff %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
-              <YAxis type="number" dataKey="y" name="Raw Mat %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
+              <YAxis type="number" dataKey="y" name="Food Cost %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 content={({ active, payload }: any) => {
@@ -290,7 +296,7 @@ export default function RankingsPage() {
                       <div className="custom-tooltip" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
                         <div style={{ color: '#fff', fontSize: '12px' }}>Staff %: {data.x.toFixed(1)}%</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>Raw Mat %: {data.y.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>Food Cost %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
                   }

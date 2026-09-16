@@ -9,7 +9,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { StoreMonthRecord, FilterState, AggregatedMetrics } from './types';
-import { filterByPeriod, aggregate, aggregatePerStore, aggregateByDimension, getMonthlyTrend } from './calculations';
+import { filterByPeriod, aggregate, aggregatePerStore, aggregateByDimension, getMonthlyTrend, recordMetric, hasCompleteLtmWindow } from './calculations';
 
 // Server-side Supabase client (uses same env vars but created fresh to avoid SSR issues)
 function getSupabase() {
@@ -68,16 +68,19 @@ export async function getFilteredData(filters: FilterState): Promise<{
 // ── Exported analytics functions ────────────────────────
 
 export interface AnalyticsContext {
-  portfolio: AggregatedMetrics;
+  portfolio: AggregatedMetrics | null;
+  periodUnavailableReason: string | null;
   periodLabel: string;
   filterDescription: string;
-  topStores: Array<{ store: string; concept: string; region: string; ebitda: number; ebitdaPct: number | null; turnover: number; grossSales: number; capex: number; cit: number; fcff: number }>;
-  bottomStores: Array<{ store: string; concept: string; region: string; ebitda: number; ebitdaPct: number | null; turnover: number; grossSales: number; capex: number; cit: number; fcff: number }>;
+  topStores: Array<{ store: string; concept: string; region: string; storeEbitdar: number; storeEbitdarPct: number | null; storeEbitda: number; storeEbitdaPct: number | null; ebitda: number; ebitdaPct: number | null; turnover: number; grossSales: number; capex: number; cit: number; fcff: number }>;
+  bottomStores: Array<{ store: string; concept: string; region: string; storeEbitdar: number; storeEbitdarPct: number | null; storeEbitda: number; storeEbitdaPct: number | null; ebitda: number; ebitdaPct: number | null; turnover: number; grossSales: number; capex: number; cit: number; fcff: number }>;
   topStoresByCapex: Array<{ store: string; concept: string; region: string; capex: number; turnover: number; grossSales: number; ebitda: number; fcff: number }>;
-  conceptSummary: Array<{ name: string; turnover: number; grossSales: number; ebitda: number; ebitdaPct: number | null; capex: number; cit: number; fcff: number; storeCount: number }>;
-  regionSummary: Array<{ name: string; turnover: number; grossSales: number; ebitda: number; ebitdaPct: number | null; capex: number; cit: number; fcff: number; storeCount: number }>;
+  conceptSummary: Array<{ name: string; turnover: number; grossSales: number; storeEbitdar: number; storeEbitdarPct: number | null; storeEbitda: number; storeEbitdaPct: number | null; ebitda: number; ebitdaPct: number | null; capex: number; cit: number; fcff: number; storeCount: number }>;
+  regionSummary: Array<{ name: string; turnover: number; grossSales: number; storeEbitdar: number; storeEbitdarPct: number | null; storeEbitda: number; storeEbitdaPct: number | null; ebitda: number; ebitdaPct: number | null; capex: number; cit: number; fcff: number; storeCount: number }>;
   ebitdaNegativeStores: Array<{ store: string; concept: string; region: string; ebitda: number; turnover: number; grossSales: number }>;
   trendTurnover: Array<{ period: string; value: number }>;
+  trendStoreEbitdar: Array<{ period: string; value: number }>;
+  trendStoreEbitda: Array<{ period: string; value: number }>;
   trendEbitda: Array<{ period: string; value: number }>;
   trendCapex: Array<{ period: string; value: number }>;
   topCapexStoreHistories: Array<{
@@ -90,19 +93,29 @@ export interface AnalyticsContext {
 
 /** Build the full analytics context for the LLM */
 export async function buildAnalyticsContext(filters: FilterState): Promise<AnalyticsContext> {
-  const { periodData, allFilteredData } = await getFilteredData(filters);
+  const { periodData: selectedPeriodData, allFilteredData } = await getFilteredData(filters);
+  const incompleteLtm = filters.periodBasis === 'ltm' && filters.year && filters.month
+    && !hasCompleteLtmWindow(allFilteredData, filters.year, filters.month);
+  const periodUnavailableReason = incompleteLtm
+    ? 'LTM figures are unavailable: the selected scope does not contain all 12 calendar months.'
+    : selectedPeriodData.length === 0 ? 'No data is available for the selected period and filters.' : null;
+  const periodData = periodUnavailableReason ? [] : selectedPeriodData;
 
   // Portfolio KPIs
-  const portfolio = aggregate(periodData);
+  const portfolio = periodUnavailableReason ? null : aggregate(periodData);
 
   // Per-store rankings
   const storeMap = aggregatePerStore(periodData);
-  const storeList = Array.from(storeMap.values()).sort((a, b) => b.totalEbitda - a.totalEbitda);
+  const storeList = Array.from(storeMap.values()).sort((a, b) => b.totalStoreEbitdar - a.totalStoreEbitdar);
 
   const mapStore = (s: typeof storeList[0]) => ({
     store: s.store,
     concept: s.concept,
     region: s.region,
+    storeEbitdar: s.totalStoreEbitdar,
+    storeEbitdarPct: s.storeEbitdarPct,
+    storeEbitda: s.totalStoreEbitda,
+    storeEbitdaPct: s.storeEbitdaPct,
     ebitda: s.totalEbitda,
     ebitdaPct: s.ebitdaPct,
     turnover: s.totalTurnover,
@@ -121,16 +134,19 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
 
   // Generate a highly compact CSV of all stores with raw monthly records for the last 24 months.
   // This allows the AI to perform its own multi-period aggregations (e.g. sums for 2024 vs 2025).
-  const csvHeader = "Year,Month,Store,Code,Concept,Region,Legal_Entity,Gross_Sales_EUR,VAT_EUR,Turnover_EUR,EBITDA_EUR,CAPEX_EUR,FCFF_EUR,Staff_Cost%_of_Turnover,Raw_Mat%_of_Turnover\n";
-  const csvRows = allFilteredData
-    .sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    })
+  const csvHeader = "Year,Month,Store,Code,Concept,Region,Legal_Entity,Gross_Sales_EUR,VAT_EUR,Turnover_EUR,Store_EBITDAR_EUR,Leases_EUR,Store_EBITDA_EUR,Headquarters_EUR,EBITDA_EUR,CAPEX_EUR,FCFF_EUR,Staff_Cost%_of_Turnover,Food_Cost%_of_Turnover\n";
+  const csvNumber = (value: number | null | undefined) => value != null && Number.isFinite(value) ? value.toFixed(0) : 'unavailable';
+  const csvRows = [...allFilteredData]
+    .sort((a, b) => a.year - b.year || a.month - b.month)
     .map(s => {
-      const turnover = s.turnover ?? (s.sales - s.vat);
-      const rPct = (num: number, den: number) => den !== 0 ? `${((num / den) * 100).toFixed(1)}%` : '0%';
-      return `${s.year},${s.month},"${s.store}","${s.code ?? ''}","${s.concept}","${s.region}","${s.legal_entity}",${s.sales.toFixed(0)},${s.vat.toFixed(0)},${turnover.toFixed(0)},${s.ebitda.toFixed(0)},${s.capex.toFixed(0)},${s.fcff.toFixed(0)},${rPct(s.staff, turnover)},${rPct(s.raw_materials, turnover)}`;
+      const turnover = recordMetric(s, 'turnover');
+      const ratio = (amount: number) => Number.isFinite(amount) && Number.isFinite(turnover) && turnover !== 0
+        ? `${((amount / turnover) * 100).toFixed(1)}%` : 'unavailable';
+      return [
+        s.year, s.month, s.store, s.code ?? '', s.concept, s.region, s.legal_entity,
+        ...[s.sales, s.vat, turnover, recordMetric(s, 'store_ebitdar'), s.rents, s.store_contribution, s.admin_costs, s.ebitda, s.capex, s.fcff].map(csvNumber),
+        ratio(s.staff), ratio(s.raw_materials),
+      ].map(value => `"${String(value).replaceAll('"', '""')}"`).join(',');
     }).join("\n");
   const allStoresMetricsCsv = csvHeader + csvRows;
 
@@ -156,6 +172,10 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
       name,
       turnover: agg.totalTurnover,
       grossSales: agg.totalSales,
+      storeEbitdar: agg.totalStoreEbitdar,
+      storeEbitdarPct: agg.storeEbitdarPct,
+      storeEbitda: agg.totalStoreEbitda,
+      storeEbitdaPct: agg.storeEbitdaPct,
       ebitda: agg.totalEbitda,
       ebitdaPct: agg.ebitdaPct,
       capex: agg.totalCapex,
@@ -172,6 +192,10 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
       name,
       turnover: agg.totalTurnover,
       grossSales: agg.totalSales,
+      storeEbitdar: agg.totalStoreEbitdar,
+      storeEbitdarPct: agg.storeEbitdarPct,
+      storeEbitda: agg.totalStoreEbitda,
+      storeEbitdaPct: agg.storeEbitdaPct,
       ebitda: agg.totalEbitda,
       ebitdaPct: agg.ebitdaPct,
       capex: agg.totalCapex,
@@ -214,7 +238,7 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
   const basisLabel = filters.periodBasis.toUpperCase();
   const periodLabel = filters.year && filters.month
     ? `${basisLabel} — ${filters.year}/${String(filters.month).padStart(2, '0')}`
-    : 'All available data';
+    : filters.year ? `FY ${filters.year}` : 'All available data';
 
   // Filter description
   const parts: string[] = [];
@@ -234,6 +258,7 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
 
   return {
     portfolio,
+    periodUnavailableReason,
     periodLabel,
     filterDescription,
     topStores,
@@ -243,6 +268,8 @@ export async function buildAnalyticsContext(filters: FilterState): Promise<Analy
     regionSummary,
     ebitdaNegativeStores,
     trendTurnover: trendTurnover.slice(-24), // Last 24 months
+    trendStoreEbitdar: getMonthlyTrend(allFilteredData, 'store_ebitdar').slice(-24),
+    trendStoreEbitda: getMonthlyTrend(allFilteredData, 'store_ebitda').slice(-24),
     trendEbitda: trendEbitda.slice(-24),
     trendCapex: trendCapex.slice(-24),
     topCapexStoreHistories,

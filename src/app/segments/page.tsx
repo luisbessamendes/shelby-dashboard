@@ -6,8 +6,9 @@ import {
   Cell, ScatterChart, Scatter, ZAxis,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
-import { filterByPeriod, aggregateByDimension } from '@/lib/calculations';
-import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
+import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
+import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregateByDimension } from '@/lib/calculations';
+import { formatCurrency, formatCompact, formatPercent, formatNumber } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
 type Dimension = 'concept' | 'region' | 'store_type' | 'location' | 'legal_entity';
@@ -22,8 +23,10 @@ const DIMENSIONS: { value: Dimension; label: string }[] = [
 
 export default function SegmentsPage() {
   const { filteredData, filters, isLoading } = useFilters();
+  const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  const profit = PROFIT_METRICS[profitMetric];
   const [dimension, setDimension] = useState<Dimension>('concept');
-  const [sortKey, setSortKey] = useState<string>('ebitdaPct');
+  const [sortKey, setSortKey] = useState<string>('storeEbitdarPct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const handleSort = (key: string) => {
@@ -66,14 +69,14 @@ export default function SegmentsPage() {
 
   // Bubble chart data: Turnover vs EBITDA %, bubble size = store count
   const bubbleData = useMemo(
-    () => segmentData.map((s, i) => ({
+    () => segmentData.filter(s => s[profit.ratio] !== null).map((s, i) => ({
       name: s.name,
       x: s.totalTurnover,
-      y: (s.ebitdaPct ?? 0) * 100,
+      y: (s[profit.ratio] ?? 0) * 100,
       z: s.storeCount,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
-    [segmentData]
+    [segmentData, profit.ratio]
   );
 
   if (isLoading) return <div className="loading-spinner"><div className="spinner" /></div>;
@@ -91,11 +94,12 @@ export default function SegmentsPage() {
   return (
     <div>
       <div className="page-header">
-        <div className="flex-between">
+        <div className="flex-between" style={{ flexWrap: 'wrap', gap: 16 }}>
           <div>
             <h1 className="page-title">Segment Analysis</h1>
             <p className="page-description">Aggregate performance by business dimension</p>
           </div>
+          <ProfitMetricSelect value={profitMetric} onChange={setProfitMetric} />
           <div className="filter-group">
             <label className="filter-label">Dimension</label>
             <select
@@ -123,10 +127,17 @@ export default function SegmentsPage() {
                 <th className={thClass('totalTurnover')} onClick={() => handleSort('totalTurnover')}>Turnover {sortKey === 'totalTurnover' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets {sortKey === 'totalTickets' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket {sortKey === 'avgTicket' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Food Cost % {sortKey === 'rawMaterialsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff % {sortKey === 'staffPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('primeCostPct')} onClick={() => handleSort('primeCostPct')}>Prime Cost % {sortKey === 'primeCostPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
-                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC % {sortKey === 'storeContributionPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalStoreEbitdar')} onClick={() => handleSort('totalStoreEbitdar')}>Store EBITDAR {sortKey === 'totalStoreEbitdar' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('storeEbitdarPct')} onClick={() => handleSort('storeEbitdarPct')}>Store EBITDAR % {sortKey === 'storeEbitdarPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalRents')} onClick={() => handleSort('totalRents')}>Leases {sortKey === 'totalRents' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Leases % {sortKey === 'rentsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalStoreEbitda')} onClick={() => handleSort('totalStoreEbitda')}>Store EBITDA {sortKey === 'totalStoreEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('storeEbitdaPct')} onClick={() => handleSort('storeEbitdaPct')}>Store EBITDA % {sortKey === 'storeEbitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('totalAdminCosts')} onClick={() => handleSort('totalAdminCosts')}>Headquarter & Admin. {sortKey === 'totalAdminCosts' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className={thClass('adminCostsPct')} onClick={() => handleSort('adminCostsPct')}>Headquarter & Admin. % {sortKey === 'adminCostsPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA {sortKey === 'totalEbitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA % {sortKey === 'ebitdaPct' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                 <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF {sortKey === 'totalFcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
@@ -139,12 +150,19 @@ export default function SegmentsPage() {
                   <td style={{ fontWeight: 500 }}>{s.name}</td>
                   <td className="numeric">{s.storeCount}</td>
                   <td className="numeric">{formatCurrency(s.totalTurnover)}</td>
-                  <td className="numeric">{formatCurrency(s.totalTickets)}</td>
+                  <td className="numeric">{formatNumber(s.totalTickets)}</td>
                   <td className="numeric">{formatCurrency(s.avgTicket)}</td>
                   <td className="numeric">{formatPercent(s.rawMaterialsPct)}</td>
                   <td className="numeric">{formatPercent(s.staffPct)}</td>
                   <td className={`numeric ${(s.primeCostPct ?? 0) > 0.60 ? 'cell-negative' : ''}`}>{formatPercent(s.primeCostPct)}</td>
-                  <td className="numeric">{formatPercent(s.storeContributionPct)}</td>
+                  <td className={`numeric ${(s.totalStoreEbitdar ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatCurrency(s.totalStoreEbitdar)}</td>
+                  <td className={`numeric ${(s.storeEbitdarPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(s.storeEbitdarPct)}</td>
+                  <td className={`numeric ${(s.totalRents ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatCurrency(-s.totalRents)}</td>
+                  <td className={`numeric ${(s.rentsPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(s.rentsPct)}</td>
+                  <td className={`numeric ${(s.totalStoreEbitda ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatCurrency(s.totalStoreEbitda)}</td>
+                  <td className={`numeric ${(s.storeEbitdaPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(s.storeEbitdaPct)}</td>
+                  <td className="numeric">{formatCurrency(-s.totalAdminCosts)}</td>
+                  <td className="numeric">{formatPercent(s.adminCostsPct)}</td>
                   <td className={`numeric ${s.totalEbitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(s.totalEbitda)}</td>
                   <td className={`numeric ${(s.ebitdaPct ?? 0) >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatPercent(s.ebitdaPct)}</td>
                   <td className={`numeric ${s.totalFcff >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(s.totalFcff)}</td>
@@ -157,9 +175,9 @@ export default function SegmentsPage() {
       </div>
 
       <div className="chart-grid">
-        {/* EBITDA % by Segment */}
+        {/* {profit.label} % by Segment */}
         <div className="chart-container">
-          <div className="chart-title">EBITDA % by {DIMENSIONS.find(d => d.value === dimension)?.label}</div>
+          <div className="chart-title">{profit.label} % by {DIMENSIONS.find(d => d.value === dimension)?.label}</div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={segmentData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -167,22 +185,22 @@ export default function SegmentsPage() {
               <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 10 }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any) => [formatPercent(v as number), 'EBITDA %']}
+                formatter={(v: any) => [formatPercent(v as number), `${profit.label} %`]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
-              <Bar dataKey="ebitdaPct" radius={[0, 4, 4, 0]}>
+              <Bar dataKey={profit.ratio} radius={[0, 4, 4, 0]}>
                 {segmentData.map((s, idx) => (
-                  <Cell key={idx} fill={(s.ebitdaPct ?? 0) >= 0 ? '#10b981' : '#ef4444'} />
+                  <Cell key={idx} fill={(s[profit.ratio] ?? 0) >= 0 ? '#10b981' : '#ef4444'} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Turnover vs EBITDA % Bubble */}
+        {/* Turnover vs {profit.label} % Bubble */}
         <div className="chart-container">
-          <div className="chart-title">Turnover vs EBITDA % (bubble = # stores)</div>
+          <div className="chart-title">Turnover vs {profit.label} % (bubble = # stores)</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
@@ -196,7 +214,7 @@ export default function SegmentsPage() {
               <YAxis
                 type="number"
                 dataKey="y"
-                name="EBITDA %"
+                name={`${profit.label} %`}
                 tickFormatter={(v: number) => `${v.toFixed(0)}%`}
                 tick={{ fontSize: 10 }}
               />
@@ -220,7 +238,7 @@ export default function SegmentsPage() {
                           <span style={{ opacity: 0.7 }}>Turnover:</span> {formatCurrency(data.x)}
                         </div>
                         <div style={{ color: '#fff', fontSize: '13px' }}>
-                          <span style={{ opacity: 0.7 }}>EBITDA %:</span> {data.y.toFixed(1)}%
+                          <span style={{ opacity: 0.7 }}>{profit.label} %:</span> {data.y.toFixed(1)}%
                         </div>
                         <div style={{ color: '#fff', fontSize: '13px' }}>
                           <span style={{ opacity: 0.7 }}>Stores:</span> {data.z}

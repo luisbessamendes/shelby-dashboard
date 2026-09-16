@@ -9,17 +9,57 @@ import type {
 } from './types';
 
 export type TrendBasis = 'monthly' | 'ltm';
+export type ProfitMetric = 'store_ebitdar' | 'store_ebitda' | 'ebitda';
+export type TrendMetric = ProfitMetric | 'sales' | 'turnover' | 'tickets' | 'avg_ticket' | 'fcff' | 'raw_materials' | 'staff' | 'rents' | 'store_contribution' | 'capex';
+
+export const PROFIT_METRICS = {
+  store_ebitdar: { label: 'Store EBITDAR', amount: 'totalStoreEbitdar', ratio: 'storeEbitdarPct' },
+  store_ebitda: { label: 'Store EBITDA', amount: 'totalStoreEbitda', ratio: 'storeEbitdaPct' },
+  ebitda: { label: 'EBITDA', amount: 'totalEbitda', ratio: 'ebitdaPct' },
+} as const;
+
+// Keep the legacy database column: it is the store profit AFTER leases, BEFORE HQ.
+export function recordMetric(record: StoreMonthRecord, metric: Exclude<TrendMetric, 'avg_ticket'>): number {
+  if (metric === 'store_ebitdar') return recordMetric(record, 'store_ebitda') + recordMetric(record, 'rents');
+  if (metric === 'store_ebitda') return recordMetric(record, 'store_contribution');
+  if (metric === 'turnover') return record.turnover ?? (record.sales != null && record.vat != null ? record.sales - record.vat : NaN);
+  return record[metric] ?? NaN;
+}
+
+export function comparisonChange(current: number | null, previous: number | null, ratio = false): number | null {
+  if (current == null || previous == null || !Number.isFinite(current) || !Number.isFinite(previous)) return null;
+  if (ratio) return current - previous;
+  return previous === 0 ? null : (current - previous) / Math.abs(previous);
+}
+
+export function pnlReconciliationIssues(record: StoreMonthRecord): string[] {
+  const subtract = (amount: number, ...deductions: number[]) =>
+    [amount, ...deductions].every(Number.isFinite)
+      ? amount - deductions.reduce((sum, value) => sum + value, 0)
+      : NaN;
+  const expectedStore = subtract(recordMetric(record, 'turnover'), record.raw_materials, record.staff,
+    record.utilities, record.maintenance, record.banking_costs, record.others, record.rents);
+  const checks = [
+    ['Turnover', record.turnover, subtract(record.sales, record.vat)],
+    ['Store EBITDA', record.store_contribution, expectedStore],
+    ['EBITDA', record.ebitda, subtract(record.store_contribution, record.admin_costs)],
+    ['FCFF', record.fcff, subtract(record.ebitda, record.capex, record.cit)],
+  ] as const;
+  return checks.flatMap(([label, actual, expected]) => Number.isFinite(actual) && Number.isFinite(expected) && Math.abs(actual - expected) > 1
+    ? [`${record.store} (${record.year}-${String(record.month).padStart(2, '0')}): ${label} differs by ${(actual - expected).toFixed(2)} EUR`]
+    : []);
+}
 
 /** Safe division: returns null if denominator is 0 */
 function safeDivide(num: number, den: number): number | null {
-  return den !== 0 ? num / den : null;
+  return den !== 0 && Number.isFinite(num) && Number.isFinite(den) ? num / den : null;
 }
 
 function monthIndex(year: number, month: number): number {
   return year * 12 + month;
 }
 
-function hasCompleteLtmWindow(records: StoreMonthRecord[], year: number, month: number): boolean {
+export function hasCompleteLtmWindow(records: StoreMonthRecord[], year: number, month: number): boolean {
   const endDate = monthIndex(year, month);
   const startDate = endDate - 11;
   const months = new Set<number>();
@@ -65,23 +105,24 @@ export function filterByPeriod(
 export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
   const uniqueStores = new Set(records.map(r => r.store));
 
-  const totalSales = records.reduce((s, r) => s + r.sales, 0);
-  const totalTurnover = records.reduce((s, r) => s + (r.turnover ?? (r.sales - r.vat)), 0);
-  const totalTickets = records.reduce((s, r) => s + r.tickets, 0);
-  const totalRawMaterials = records.reduce((s, r) => s + r.raw_materials, 0);
-  const totalStaff = records.reduce((s, r) => s + r.staff, 0);
-  const totalRents = records.reduce((s, r) => s + r.rents, 0);
-  const totalUtilities = records.reduce((s, r) => s + r.utilities, 0);
-  const totalMaintenance = records.reduce((s, r) => s + r.maintenance, 0);
-  const totalBankingCosts = records.reduce((s, r) => s + r.banking_costs, 0);
-  const totalVat = records.reduce((s, r) => s + r.vat, 0);
-  const totalOthers = records.reduce((s, r) => s + r.others, 0);
-  const totalSC = records.reduce((s, r) => s + r.store_contribution, 0);
-  const totalAdminCosts = records.reduce((s, r) => s + r.admin_costs, 0);
-  const totalEbitda = records.reduce((s, r) => s + r.ebitda, 0);
-  const totalCapex = records.reduce((s, r) => s + r.capex, 0);
-  const totalCit = records.reduce((s, r) => s + r.cit, 0);
-  const totalFcff = records.reduce((s, r) => s + r.fcff, 0);
+  const totalSales = records.reduce((s, r) => s + (r.sales ?? NaN), 0);
+  const totalTurnover = records.reduce((s, r) => s + recordMetric(r, 'turnover'), 0);
+  const totalTickets = records.reduce((s, r) => s + (r.tickets ?? NaN), 0);
+  const totalRawMaterials = records.reduce((s, r) => s + (r.raw_materials ?? NaN), 0);
+  const totalStaff = records.reduce((s, r) => s + (r.staff ?? NaN), 0);
+  const totalRents = records.reduce((s, r) => s + (r.rents ?? NaN), 0);
+  const totalUtilities = records.reduce((s, r) => s + (r.utilities ?? NaN), 0);
+  const totalMaintenance = records.reduce((s, r) => s + (r.maintenance ?? NaN), 0);
+  const totalBankingCosts = records.reduce((s, r) => s + (r.banking_costs ?? NaN), 0);
+  const totalVat = records.reduce((s, r) => s + (r.vat ?? NaN), 0);
+  const totalOthers = records.reduce((s, r) => s + (r.others ?? NaN), 0);
+  const totalSC = records.reduce((s, r) => s + recordMetric(r, 'store_ebitda'), 0);
+  const totalStoreEbitdar = records.reduce((s, r) => s + recordMetric(r, 'store_ebitdar'), 0);
+  const totalAdminCosts = records.reduce((s, r) => s + (r.admin_costs ?? NaN), 0);
+  const totalEbitda = records.reduce((s, r) => s + (r.ebitda ?? NaN), 0);
+  const totalCapex = records.reduce((s, r) => s + (r.capex ?? NaN), 0);
+  const totalCit = records.reduce((s, r) => s + (r.cit ?? NaN), 0);
+  const totalFcff = records.reduce((s, r) => s + (r.fcff ?? NaN), 0);
 
   // Count stores with negative EBITDA / FCFF (for monthly view, use the latest month per store)
   const ebitdaNegativeCount = countNegativeStores(records, 'ebitda');
@@ -103,7 +144,8 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
     totalBankingCosts,
     totalVat,
     totalOthers,
-    totalStoreContribution: totalSC,
+    totalStoreEbitdar,
+    totalStoreEbitda: totalSC,
     totalAdminCosts,
     totalEbitda,
     totalCapex,
@@ -118,11 +160,14 @@ export function aggregate(records: StoreMonthRecord[]): AggregatedMetrics {
     maintenancePct: safeDivide(totalMaintenance, totalTurnover),
     bankingCostsPct: safeDivide(totalBankingCosts, totalTurnover),
     othersPct: safeDivide(totalOthers, totalTurnover),
-    storeContributionPct: safeDivide(totalSC, totalTurnover),
+    storeEbitdarPct: safeDivide(totalStoreEbitdar, totalTurnover),
+    storeEbitdaPct: safeDivide(totalSC, totalTurnover),
     adminCostsPct: safeDivide(totalAdminCosts, totalTurnover),
     ebitdaPct: safeDivide(totalEbitda, totalTurnover),
     fcffPct: safeDivide(totalFcff, totalTurnover),
     // Derived
+    storeEbitdarNegativeCount: countNegativeStores(records, 'store_ebitdar'),
+    storeEbitdaNegativeCount: countNegativeStores(records, 'store_ebitda'),
     ebitdaNegativeCount,
     fcffNegativeCount,
     salesPerStore: safeDivide(totalSales, storeCount) ?? 0,
@@ -188,10 +233,10 @@ export function aggregateByDimension(
 /**
  * Count stores with negative metric value (aggregate per store first)
  */
-function countNegativeStores(records: StoreMonthRecord[], metric: 'ebitda' | 'fcff'): number {
+function countNegativeStores(records: StoreMonthRecord[], metric: ProfitMetric | 'fcff'): number {
   const storeAggs = new Map<string, number>();
   for (const r of records) {
-    storeAggs.set(r.store, (storeAggs.get(r.store) || 0) + r[metric]);
+    storeAggs.set(r.store, (storeAggs.get(r.store) ?? 0) + recordMetric(r, metric));
   }
   let count = 0;
   for (const val of storeAggs.values()) {
@@ -205,7 +250,7 @@ function countNegativeStores(records: StoreMonthRecord[], metric: 'ebitda' | 'fc
  */
 export function getMonthlyTrend(
   records: StoreMonthRecord[],
-  metric: keyof Pick<StoreMonthRecord, 'sales' | 'turnover' | 'tickets' | 'avg_ticket' | 'ebitda' | 'fcff' | 'raw_materials' | 'staff' | 'store_contribution' | 'capex'>,
+  metric: TrendMetric,
   basis: TrendBasis = 'monthly',
 ): Array<{ period: string; year: number; month: number; value: number; sales: number; turnover: number }> {
   const grouped = new Map<string, StoreMonthRecord[]>();
@@ -221,16 +266,16 @@ export function getMonthlyTrend(
       const end = periodRecs[0];
       if (basis === 'ltm' && !hasCompleteLtmWindow(records, end.year, end.month)) return null;
       const recs = basis === 'ltm' ? filterByPeriod(records, 'ltm', end.year, end.month) : periodRecs;
-      const totalSales = recs.reduce((s, r) => s + r.sales, 0);
-      const totalTurnover = recs.reduce((s, r) => s + (r.turnover ?? (r.sales - r.vat)), 0);
-      const totalTickets = recs.reduce((s, r) => s + r.tickets, 0);
+      const totalSales = recs.reduce((s, r) => s + (r.sales ?? NaN), 0);
+      const totalTurnover = recs.reduce((s, r) => s + recordMetric(r, 'turnover'), 0);
+      const totalTickets = recs.reduce((s, r) => s + (r.tickets ?? NaN), 0);
       let value: number;
       if (metric === 'avg_ticket') {
         value = totalTickets !== 0 ? totalSales / totalTickets : 0;
       } else if (metric === 'turnover') {
         value = totalTurnover;
       } else {
-        value = recs.reduce((s, r) => s + (r[metric] as number), 0);
+        value = recs.reduce((s, r) => s + recordMetric(r, metric), 0);
       }
       return {
         period,
@@ -250,7 +295,7 @@ export function getMonthlyTrend(
  */
 export function getRatioTrend(
   records: StoreMonthRecord[],
-  numeratorField: keyof Pick<StoreMonthRecord, 'raw_materials' | 'staff' | 'rents' | 'ebitda' | 'fcff' | 'store_contribution'>,
+  numeratorField: ProfitMetric | 'raw_materials' | 'staff' | 'rents' | 'fcff' | 'store_contribution',
   denominatorField: keyof Pick<StoreMonthRecord, 'sales' | 'turnover' | 'tickets'> = 'turnover',
   basis: TrendBasis = 'monthly',
 ): Array<{ period: string; year: number; month: number; value: number | null }> {
@@ -267,9 +312,9 @@ export function getRatioTrend(
       const end = periodRecs[0];
       if (basis === 'ltm' && !hasCompleteLtmWindow(records, end.year, end.month)) return null;
       const recs = basis === 'ltm' ? filterByPeriod(records, 'ltm', end.year, end.month) : periodRecs;
-      const totalNum = recs.reduce((s, r) => s + (r[numeratorField] as number), 0);
+      const totalNum = recs.reduce((s, r) => s + recordMetric(r, numeratorField), 0);
       const totalDen = recs.reduce((s, r) => (
-        s + (denominatorField === 'turnover' ? (r.turnover ?? (r.sales - r.vat)) : (r[denominatorField] as number))
+        s + recordMetric(r, denominatorField)
       ), 0);
       return {
         period,
@@ -294,6 +339,7 @@ export function getYearlyComparison(
 ): Array<{ year: number; metrics: AggregatedMetrics }> {
   return availableYears
     .map(year => {
+      if (basis === 'ltm' && !hasCompleteLtmWindow(records, year, month)) return null;
       const subset = filterByPeriod(records, basis, year, month);
       if (subset.length === 0) return null;
       return {

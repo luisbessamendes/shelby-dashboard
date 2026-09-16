@@ -7,11 +7,14 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
-import { filterByPeriod, aggregate, getMonthlyTrend } from '@/lib/calculations';
+import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
+import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregate, getMonthlyTrend } from '@/lib/calculations';
 import KPICard from '@/components/ui/KPICard';
 import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
 
 export default function StoreDetailPage() {
+  const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  const profit = PROFIT_METRICS[profitMetric];
   const params = useParams();
   const storeName = decodeURIComponent(params.name as string);
   const { filteredData, allData, filters, isLoading } = useFilters();
@@ -73,25 +76,29 @@ export default function StoreDetailPage() {
 
   // Trends (store)
   const turnoverTrend = useMemo(() => getMonthlyTrend(storeAllData, 'turnover'), [storeAllData]);
-  const ebitdaTrend = useMemo(() => getMonthlyTrend(storeAllData, 'ebitda'), [storeAllData]);
+  const ebitdaTrend = useMemo(() => getMonthlyTrend(storeAllData, profitMetric), [storeAllData, profitMetric]);
 
   // Cost structure
   const costStructure = useMemo(() => {
     if (storeAgg.totalTurnover === 0) return [];
     return [
-      { name: 'Raw Mat.', value: (storeAgg.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
+      { name: 'Food Cost', value: (storeAgg.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
       { name: 'Staff', value: (storeAgg.staffPct ?? 0) * 100, fill: '#f59e0b' },
-      { name: 'Rents', value: (storeAgg.rentsPct ?? 0) * 100, fill: '#8b5cf6' },
       { name: 'Utilities', value: (storeAgg.utilitiesPct ?? 0) * 100, fill: '#06b6d4' },
       { name: 'Maint.', value: (storeAgg.maintenancePct ?? 0) * 100, fill: '#6b7280' },
       { name: 'Banking', value: (storeAgg.bankingCostsPct ?? 0) * 100, fill: '#3b82f6' },
       { name: 'Others', value: (storeAgg.othersPct ?? 0) * 100, fill: '#9ca3af' },
+      { name: 'Leases', value: (storeAgg.rentsPct ?? 0) * 100, fill: '#8b5cf6' },
+      { name: 'Headquarter & Admin.', value: (storeAgg.adminCostsPct ?? 0) * 100, fill: '#a78bfa' },
     ];
   }, [storeAgg]);
 
   // Diagnostic flags
   const diagnostics = useMemo(() => {
     const flags = [];
+    if (storeAgg.totalStoreEbitdar < 0) flags.push({ label: 'Loss Before Leases', severity: 'high' as const, desc: `Store EBITDAR: ${formatCurrency(storeAgg.totalStoreEbitdar)}` });
+    if (storeAgg.totalStoreEbitdar >= 0 && storeAgg.totalStoreEbitda < 0) flags.push({ label: 'Loss After Leases', severity: 'high' as const, desc: `Store EBITDA: ${formatCurrency(storeAgg.totalStoreEbitda)}` });
+    if (storeAgg.totalStoreEbitda >= 0 && storeAgg.totalEbitda < 0) flags.push({ label: 'Loss After Headquarters', severity: 'high' as const, desc: `EBITDA: ${formatCurrency(storeAgg.totalEbitda)}` });
     if ((storeAgg.staffPct ?? 0) > 0.30) flags.push({ label: 'High Labor Burden', severity: 'high' as const, desc: `Staff at ${formatPercent(storeAgg.staffPct)} of turnover (>30%)` });
     if ((storeAgg.rawMaterialsPct ?? 0) > 0.35) flags.push({ label: 'High Food Cost', severity: 'high' as const, desc: `Raw materials at ${formatPercent(storeAgg.rawMaterialsPct)} of turnover (>35%)` });
     if ((storeAgg.rentsPct ?? 0) > 0.15) flags.push({ label: 'High Rent Burden', severity: 'medium' as const, desc: `Rents at ${formatPercent(storeAgg.rentsPct)} of turnover (>15%)` });
@@ -136,13 +143,17 @@ export default function StoreDetailPage() {
 
       {/* KPIs */}
       <div className="kpi-grid">
+        <KPICard label="Store EBITDAR" value={storeAgg.totalStoreEbitdar} format="compact" />
+        <KPICard label="Store EBITDAR %" value={storeAgg.storeEbitdarPct} format="percent" />
+        <KPICard label="Store EBITDA" value={storeAgg.totalStoreEbitda} format="compact" />
+        <KPICard label="EBITDA" value={storeAgg.totalEbitda} format="compact" />
         <KPICard label="Turnover" value={storeAgg.totalTurnover} format="compact" />
         <KPICard label="Gross Sales" value={storeAgg.totalSales} format="compact" />
         <KPICard label="Tickets" value={storeAgg.totalTickets} format="number" />
         <KPICard label="Avg Ticket" value={storeAgg.avgTicket} format="currency" />
-        <KPICard label="Raw Materials %" value={storeAgg.rawMaterialsPct} format="percent" />
+        <KPICard label="Food Cost %" value={storeAgg.rawMaterialsPct} format="percent" />
         <KPICard label="Staff %" value={storeAgg.staffPct} format="percent" />
-        <KPICard label="Store Contr. %" value={storeAgg.storeContributionPct} format="percent" />
+        <KPICard label="Store EBITDA %" value={storeAgg.storeEbitdaPct} format="percent" />
         <KPICard label="EBITDA %" value={storeAgg.ebitdaPct} format="percent" />
         <KPICard label="FCFF %" value={storeAgg.fcffPct} format="percent" />
       </div>
@@ -180,11 +191,12 @@ export default function StoreDetailPage() {
               <tbody>
                 {(() => {
                   const arr = [
+                    { label: 'Store EBITDAR %', s: storeAgg.storeEbitdarPct, p: portfolioAgg.storeEbitdarPct, c: conceptAgg.storeEbitdarPct, r: regionAgg.storeEbitdarPct, f: formatAgg.storeEbitdarPct },
                     { label: 'EBITDA %', s: storeAgg.ebitdaPct, p: portfolioAgg.ebitdaPct, c: conceptAgg.ebitdaPct, r: regionAgg.ebitdaPct, f: formatAgg.ebitdaPct },
                     { label: 'Staff %', s: storeAgg.staffPct, p: portfolioAgg.staffPct, c: conceptAgg.staffPct, r: regionAgg.staffPct, f: formatAgg.staffPct },
-                    { label: 'Raw Mat %', s: storeAgg.rawMaterialsPct, p: portfolioAgg.rawMaterialsPct, c: conceptAgg.rawMaterialsPct, r: regionAgg.rawMaterialsPct, f: formatAgg.rawMaterialsPct },
-                    { label: 'Rents %', s: storeAgg.rentsPct, p: portfolioAgg.rentsPct, c: conceptAgg.rentsPct, r: regionAgg.rentsPct, f: formatAgg.rentsPct },
-                    { label: 'SC %', s: storeAgg.storeContributionPct, p: portfolioAgg.storeContributionPct, c: conceptAgg.storeContributionPct, r: regionAgg.storeContributionPct, f: formatAgg.storeContributionPct },
+                    { label: 'Food Cost %', s: storeAgg.rawMaterialsPct, p: portfolioAgg.rawMaterialsPct, c: conceptAgg.rawMaterialsPct, r: regionAgg.rawMaterialsPct, f: formatAgg.rawMaterialsPct },
+                    { label: 'Leases %', s: storeAgg.rentsPct, p: portfolioAgg.rentsPct, c: conceptAgg.rentsPct, r: regionAgg.rentsPct, f: formatAgg.rentsPct },
+                    { label: 'Store EBITDA %', s: storeAgg.storeEbitdaPct, p: portfolioAgg.storeEbitdaPct, c: conceptAgg.storeEbitdaPct, r: regionAgg.storeEbitdaPct, f: formatAgg.storeEbitdaPct },
                     { label: 'FCFF %', s: storeAgg.fcffPct, p: portfolioAgg.fcffPct, c: conceptAgg.fcffPct, r: regionAgg.fcffPct, f: formatAgg.fcffPct },
                     { label: 'Avg Ticket', s: storeAgg.avgTicket, p: portfolioAgg.avgTicket, c: conceptAgg.avgTicket, r: regionAgg.avgTicket, f: formatAgg.avgTicket },
                   ];
@@ -225,9 +237,9 @@ export default function StoreDetailPage() {
         <div className="chart-container">
           <div className="chart-title">Cost Structure (% of Turnover)</div>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={costStructure}>
+            <BarChart data={costStructure} margin={{ bottom: 55, right: 25 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} angle={-30} textAnchor="end" />
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -264,7 +276,7 @@ export default function StoreDetailPage() {
         </div>
 
         <div className="chart-container">
-          <div className="chart-title">EBITDA Trend</div>
+          <div className="chart-title" style={{ flexWrap: 'wrap', gap: 12 }}>{profit.label} Trend<ProfitMetricSelect value={profitMetric} onChange={setProfitMetric} /></div>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={ebitdaTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -272,7 +284,7 @@ export default function StoreDetailPage() {
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(v: any) => [formatCurrency(v), 'EBITDA']}
+                formatter={(v: any) => [formatCurrency(v), profit.label]}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               /><Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />

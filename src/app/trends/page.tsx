@@ -30,7 +30,7 @@ export default function TrendsPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+      <div className="page-header" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
           <h1 className="page-title">Trend Analysis</h1>
           <p className="page-description">{trendBasis === 'ltm' ? 'LTM' : 'Monthly'} performance trends across the portfolio</p>

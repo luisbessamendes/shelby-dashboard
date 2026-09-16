@@ -17,7 +17,11 @@ The database table is \`fact_store_month\`. Each row represents one store for on
     - \`sales\`: Gross sales in EUR before VAT deduction.
     - \`vat\`: VAT deduction in EUR.
     - \`turnover\`: Net sales after VAT; this is the operating revenue base for margins.
-    - \`ebitda\`: Earnings before interest, taxes, depreciation, and amortization.
+    - Store EBITDAR: store profit BEFORE leases and headquarters. Equals legacy \`store_contribution\` plus \`rents\`. It is NOT EBITDA plus leases.
+    - Store EBITDA: store profit AFTER leases and BEFORE headquarters; stored in \`store_contribution\` (formerly Store Contribution).
+    - \`ebitda\`: profit AFTER leases and Headquarter & Admin. Equals Store EBITDA minus \`admin_costs\`.
+    - Prime Cost is Food Cost plus Staff Cost. It is a subtotal, never an additional deduction.
+    - All profitability margins are weighted totals divided by Turnover. Average Ticket is Gross Sales divided by Tickets.
     - \`capex\`: Capital expenditures (Investments).
     - \`fcff\`: Free Cash Flow (\`EBITDA - CAPEX - CIT\`).
     - \`staff\`: Total staff cost (\`Staff % = staff / turnover\`).
@@ -37,22 +41,30 @@ Structure every answer professionally:
 4.  **Strategic Insight**: One actionable recommendation based on the data.
 
 ## Rules
+- All query tools inherit the current dashboard scope. Keep Store, Concept, Region, Location, Legal Entity and Type filters unless the user changes them. Specify different periods only when requested for comparison.
+- LTM requires 12 calendar months. Compare LTM to the same endpoint one year earlier, not to FY. Amount YoY is (current - prior) / abs(prior); zero prior amounts are unavailable. Margin changes are percentage points, including when the prior margin is zero.
 - **Model Reasoning**: Think step-by-step.
 - **Accuracy First**: Only use data returned by tools.
-- **Default Profitability**: Use EBITDA unless specified.
+- **Default Profitability**: Use Store EBITDAR for unspecified operating-profit questions. Explicit EBITDA means after headquarters; never substitute EBITDAR for EBITDA or FCFF.
 `;
 
 function buildInitialContext(ctx: AnalyticsContext): string {
+  const number = (value: number) => Number.isFinite(value) ? value.toLocaleString() : 'unavailable';
+  const kpis = ctx.portfolio ? `
+- Total Turnover: ${number(ctx.portfolio.totalTurnover)}
+- Gross Sales: ${number(ctx.portfolio.totalSales)}
+- Store EBITDAR: ${number(ctx.portfolio.totalStoreEbitdar)}
+- Store EBITDA: ${number(ctx.portfolio.totalStoreEbitda)}
+- Headquarters costs: ${number(ctx.portfolio.totalAdminCosts)}
+- Total EBITDA: ${number(ctx.portfolio.totalEbitda)}
+- Store Count: ${ctx.portfolio.storeCount}` : ctx.periodUnavailableReason;
   return `## Current Dashboard Filters
 - **Period**: ${ctx.periodLabel}
 - **Selected Filters**: ${ctx.filterDescription}
 - **Available History**: ${ctx.availablePeriods}
 
 ### Dashboard KPI Summary (Pre-Aggregated for Current Filter)
-- Total Turnover: ${ctx.portfolio.totalTurnover.toLocaleString()}
-- Gross Sales: ${ctx.portfolio.totalSales.toLocaleString()}
-- Total EBITDA: ${ctx.portfolio.totalEbitda.toLocaleString()}
-- Store Count: ${ctx.portfolio.storeCount}
+${kpis}
 
 *Note: You have access to tools to fetch any other historical or detailed data needed for deep analysis.*`;
 }
@@ -120,7 +132,7 @@ export async function POST(request: NextRequest) {
         console.log(`[AI Tool Call] ${name}`, args);
         
         try {
-          const result = await executeAiTool(name, args);
+          const result = await executeAiTool(name, args, filters);
           openaiMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,

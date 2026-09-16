@@ -4,52 +4,10 @@ import { useMemo } from 'react';
 import { useFilters } from '@/contexts/FilterContext';
 import { formatCurrency, formatNumber, formatPercent, formatPercentPP, formatTrend } from '@/lib/formatters';
 import { buildPnlComparison } from '@/lib/pnl';
+import { comparisonChange } from '@/lib/calculations';
 import type { PnlColumnDefinition, PnlGroupComparison } from '@/lib/pnl';
-import type { AggregatedMetrics } from '@/lib/types';
 
-type RowFormat = 'currency' | 'number' | 'percent';
-type TrendPreference = 'higher' | 'lower' | 'neutral';
-
-interface PnlRowDefinition {
-  id: string;
-  label: string;
-  format: RowFormat;
-  value: (metrics: AggregatedMetrics) => number | null;
-  growthValue?: (metrics: AggregatedMetrics) => number | null;
-  trendPreference: TrendPreference;
-  sectionStart?: boolean;
-  emphasis?: boolean;
-}
-
-const PNL_ROWS: PnlRowDefinition[] = [
-  { id: 'tickets', label: '# Tickets', format: 'number', value: m => m.totalTickets, trendPreference: 'higher' },
-  { id: 'avgTicket', label: 'Average Ticket', format: 'currency', value: m => m.avgTicket, trendPreference: 'higher' },
-  { id: 'grossSales', label: 'Gross Sales', format: 'currency', value: m => m.totalSales, trendPreference: 'higher', sectionStart: true },
-  { id: 'vat', label: 'VAT', format: 'currency', value: m => -m.totalVat, growthValue: m => m.totalVat, trendPreference: 'lower' },
-  { id: 'turnover', label: 'Turnover', format: 'currency', value: m => m.totalTurnover, trendPreference: 'higher', emphasis: true },
-  { id: 'foodCost', label: 'Food Cost', format: 'currency', value: m => -m.totalRawMaterials, growthValue: m => m.totalRawMaterials, trendPreference: 'lower', sectionStart: true },
-  { id: 'foodCostPct', label: 'Food Cost %', format: 'percent', value: m => m.rawMaterialsPct, trendPreference: 'lower' },
-  { id: 'staffCost', label: 'Staff Cost', format: 'currency', value: m => -m.totalStaff, growthValue: m => m.totalStaff, trendPreference: 'lower', sectionStart: true },
-  { id: 'staffCostPct', label: 'Staff Cost %', format: 'percent', value: m => m.staffPct, trendPreference: 'lower' },
-  { id: 'primeCost', label: 'Prime Cost', format: 'currency', value: m => -(m.totalRawMaterials + m.totalStaff), growthValue: m => m.totalRawMaterials + m.totalStaff, trendPreference: 'lower', sectionStart: true, emphasis: true },
-  { id: 'primeCostPct', label: 'Prime Cost %', format: 'percent', value: m => m.primeCostPct, trendPreference: 'lower', emphasis: true },
-  { id: 'leases', label: 'Leases', format: 'currency', value: m => -m.totalRents, growthValue: m => m.totalRents, trendPreference: 'lower', sectionStart: true },
-  { id: 'leasesPct', label: 'Leases %', format: 'percent', value: m => m.rentsPct, trendPreference: 'lower' },
-  { id: 'utilities', label: 'Utilities', format: 'currency', value: m => -m.totalUtilities, growthValue: m => m.totalUtilities, trendPreference: 'lower', sectionStart: true },
-  { id: 'utilitiesPct', label: 'Utilities %', format: 'percent', value: m => m.utilitiesPct, trendPreference: 'lower' },
-  { id: 'maintenance', label: 'Maintenance', format: 'currency', value: m => -m.totalMaintenance, growthValue: m => m.totalMaintenance, trendPreference: 'lower', sectionStart: true },
-  { id: 'maintenancePct', label: 'Maintenance %', format: 'percent', value: m => m.maintenancePct, trendPreference: 'lower' },
-  { id: 'bankingCosts', label: 'Banking Costs', format: 'currency', value: m => -m.totalBankingCosts, growthValue: m => m.totalBankingCosts, trendPreference: 'lower', sectionStart: true },
-  { id: 'bankingCostsPct', label: 'Banking Costs %', format: 'percent', value: m => m.bankingCostsPct, trendPreference: 'lower' },
-  { id: 'others', label: 'Others', format: 'currency', value: m => -m.totalOthers, growthValue: m => m.totalOthers, trendPreference: 'lower', sectionStart: true },
-  { id: 'othersPct', label: 'Others %', format: 'percent', value: m => m.othersPct, trendPreference: 'lower' },
-  { id: 'storeContribution', label: 'Store Contribution', format: 'currency', value: m => m.totalStoreContribution, trendPreference: 'higher', sectionStart: true, emphasis: true },
-  { id: 'storeContributionPct', label: 'Store Contribution %', format: 'percent', value: m => m.storeContributionPct, trendPreference: 'higher', emphasis: true },
-  { id: 'adminCosts', label: 'Headquarter & Admin.', format: 'currency', value: m => -m.totalAdminCosts, growthValue: m => m.totalAdminCosts, trendPreference: 'lower', sectionStart: true },
-  { id: 'adminCostsPct', label: 'Headquarter & Admin. %', format: 'percent', value: m => m.adminCostsPct, trendPreference: 'lower' },
-  { id: 'ebitda', label: 'EBITDA', format: 'currency', value: m => m.totalEbitda, trendPreference: 'higher', sectionStart: true, emphasis: true },
-  { id: 'ebitdaPct', label: 'EBITDA %', format: 'percent', value: m => m.ebitdaPct, trendPreference: 'higher', emphasis: true },
-];
+import { PNL_ROWS, type PnlRowDefinition, type RowFormat } from '@/lib/pnl-rows';
 
 function formatValue(value: number | null, format: RowFormat): string {
   if (format === 'number') return formatNumber(value);
@@ -71,18 +29,14 @@ function comparisonValue(
   const getter = row.growthValue ?? row.value;
   const current = getter(currentMetrics);
   const previous = getter(previousMetrics);
-  if (current == null || previous == null || previous === 0) return null;
-
-  return row.format === 'percent'
-    ? current - previous
-    : (current - previous) / Math.abs(previous);
+  return comparisonChange(current, previous, row.format === 'percent');
 }
 
 function valueClass(row: PnlRowDefinition, value: number | null): string {
   if (value == null) return '';
   if (row.id === 'primeCostPct' && value > 0.6) return 'cell-negative';
   if (
-    (row.id === 'storeContribution' || row.id === 'storeContributionPct' || row.id === 'ebitda' || row.id === 'ebitdaPct')
+    (['storeEbitdar', 'storeEbitdarPct', 'storeEbitda', 'storeEbitdaPct', 'ebitda', 'ebitdaPct'].includes(row.id))
     && value < 0
   ) return 'cell-negative';
   return '';
@@ -139,6 +93,14 @@ export default function PnlPage() {
       </div>
 
       {model.notice && <div className="pnl-notice" role="status">{model.notice}</div>}
+      {model.reconciliationIssues.length > 0 && (
+        <details className="pnl-notice">
+          <summary>{model.reconciliationIssues.length} source subtotal differences above EUR 1. Original figures retained.</summary>
+          <ul style={{ paddingLeft: 20, maxHeight: 180, overflow: 'auto' }}>
+            {model.reconciliationIssues.map((issue, index) => <li key={index}>{issue}</li>)}
+          </ul>
+        </details>
+      )}
 
       <div className="data-table-container pnl-table-container">
         <div className="pnl-table-summary">
@@ -180,7 +142,7 @@ export default function PnlPage() {
                     key={`${group.id}:${column.key}`}
                     className={`pnl-period-header ${groupClass(group)} ${column.compareKey ? 'pnl-yoy-header' : ''} ${column.key === 'current' ? 'pnl-current-header' : ''} ${columnIndex === 0 ? 'pnl-group-start' : ''}`}
                     scope="col"
-                    title={column.label}
+                    title={column.title ?? column.label}
                   >
                     {column.label}
                   </th>

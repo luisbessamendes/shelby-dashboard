@@ -94,7 +94,8 @@ export interface AggregatedMetrics {
   totalBankingCosts: number;
   totalVat: number;
   totalOthers: number;
-  totalStoreContribution: number;
+  totalStoreEbitdar: number;
+  totalStoreEbitda: number;
   totalAdminCosts: number;
   totalEbitda: number;
   totalCapex: number;
@@ -109,11 +110,14 @@ export interface AggregatedMetrics {
   maintenancePct: number | null;
   bankingCostsPct: number | null;
   othersPct: number | null;
-  storeContributionPct: number | null;
+  storeEbitdarPct: number | null;
+  storeEbitdaPct: number | null;
   adminCostsPct: number | null;
   ebitdaPct: number | null;
   fcffPct: number | null;
   // Derived
+  storeEbitdarNegativeCount: number;
+  storeEbitdaNegativeCount: number;
   ebitdaNegativeCount: number;
   fcffNegativeCount: number;
   salesPerStore: number;

@@ -1,4 +1,4 @@
-import { aggregate, filterByPeriod } from './calculations';
+import { aggregate, filterByPeriod, hasCompleteLtmWindow, pnlReconciliationIssues } from './calculations';
 import { MONTH_SHORT_NAMES } from './constants';
 import type { AggregatedMetrics, PeriodBasis, StoreMonthRecord } from './types';
 
@@ -7,6 +7,7 @@ export type PnlValuePeriodKey = 'fyOlder' | 'fyRecent' | 'currentPrior' | 'curre
 export interface PnlColumnDefinition {
   key: 'fyOlder' | 'fyRecent' | 'fyYoy' | 'current' | 'currentYoy';
   label: string;
+  title?: string;
   valueKey: PnlValuePeriodKey;
   compareKey?: PnlValuePeriodKey;
 }
@@ -22,6 +23,7 @@ export interface PnlComparisonModel {
   columns: PnlColumnDefinition[];
   groups: PnlGroupComparison[];
   notice: string | null;
+  reconciliationIssues: string[];
 }
 
 interface PnlGroupSource {
@@ -29,23 +31,6 @@ interface PnlGroupSource {
   label: string;
   kind: PnlGroupComparison['kind'];
   records: StoreMonthRecord[];
-}
-
-function monthIndex(year: number, month: number): number {
-  return year * 12 + month;
-}
-
-function hasCompleteLtmWindow(records: StoreMonthRecord[], year: number, month: number): boolean {
-  const end = monthIndex(year, month);
-  const start = end - 11;
-  const months = new Set<number>();
-
-  for (const record of records) {
-    const index = monthIndex(record.year, record.month);
-    if (index >= start && index <= end) months.add(index);
-  }
-
-  return months.size === 12;
 }
 
 function currentPeriodLabel(basis: PeriodBasis, year: number, month: number): string {
@@ -133,9 +118,9 @@ export function buildPnlComparison(
   const columns: PnlColumnDefinition[] = [
     { key: 'fyOlder', label: `FY ${year - 2}`, valueKey: 'fyOlder' },
     { key: 'fyRecent', label: `FY ${year - 1}`, valueKey: 'fyRecent' },
-    { key: 'fyYoy', label: 'YoY %', valueKey: 'fyRecent', compareKey: 'fyOlder' },
+    { key: 'fyYoy', label: 'YoY / pp', title: `FY ${year - 1} vs FY ${year - 2}: amount growth in %, margin change in percentage points`, valueKey: 'fyRecent', compareKey: 'fyOlder' },
     { key: 'current', label: currentPeriodLabel(basis, year, month), valueKey: 'current' },
-    { key: 'currentYoy', label: 'YoY %', valueKey: 'current', compareKey: 'currentPrior' },
+    { key: 'currentYoy', label: 'YoY / pp', title: `${currentPeriodLabel(basis, year, month)} vs ${currentPeriodLabel(basis, year - 1, month)}: amount growth in %, margin change in percentage points`, valueKey: 'current', compareKey: 'currentPrior' },
   ];
 
   const groups = buildGroupSources(records).map(group => {
@@ -167,5 +152,8 @@ export function buildPnlComparison(
     notice = `Prior-year LTM history is incomplete, so current-period YoY values are shown as unavailable.`;
   }
 
-  return { columns, groups, notice };
+  const comparedRecords = new Set(['fyOlder', 'fyRecent', 'currentPrior', 'current'].flatMap(key =>
+    periodRecords(records, key as PnlValuePeriodKey, basis, year, month)));
+  const reconciliationIssues = [...comparedRecords].flatMap(pnlReconciliationIssues);
+  return { columns, groups, notice, reconciliationIssues };
 }

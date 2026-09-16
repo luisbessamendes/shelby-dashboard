@@ -13,7 +13,7 @@ export default function PerformancePage() {
   const { filteredData, filters, isLoading } = useFilters();
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('totalEbitda');
+  const [sortKey, setSortKey] = useState<SortKey>('totalStoreEbitdar');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const periodData = useMemo(() => {
@@ -61,24 +61,24 @@ export default function PerformancePage() {
   const sortIndicator = (key: string) => sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
 
   const exportCSV = () => {
-    const headers = ['Store', 'Concept', 'Region', 'Type', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Raw Mat %', 'Staff %', 'Prime Cost %', 'Rents %', 'Utilities %', 'Maintenance %', 'Banking %', 'Others %', 'SC %', 'Store Contribution', 'Headquarter & Admin.', 'EBITDA', 'EBITDA %', 'FCFF', 'FCFF %'];
+    const headers = ['Store', 'Concept', 'Region', 'Type', 'Gross Sales', 'VAT', 'Turnover', 'Tickets', 'Avg Ticket', 'Food Cost %', 'Staff %', 'Prime Cost %', 'Utilities %', 'Maintenance %', 'Banking %', 'Others %', 'Store EBITDAR', 'Store EBITDAR %', 'Leases', 'Leases %', 'Store EBITDA', 'Store EBITDA %', 'Headquarter & Admin.', 'Headquarter & Admin. %', 'EBITDA', 'EBITDA %', 'FCFF', 'FCFF %'];
     const csvRows = storeRows.map(r => [
       r.store, r.concept, r.region, r.store_type,
-      r.totalSales, r.totalVat, r.totalTurnover, r.totalTickets, r.avgTicket,
+      r.totalSales, -r.totalVat, r.totalTurnover, r.totalTickets, r.avgTicket,
       r.rawMaterialsPct,
       r.staffPct,
       r.primeCostPct,
-      r.rentsPct,
       r.utilitiesPct,
       r.maintenancePct,
       r.bankingCostsPct,
       r.othersPct,
-      r.storeContributionPct,
-      r.totalStoreContribution,
-      r.totalAdminCosts,
+      r.totalStoreEbitdar, r.storeEbitdarPct,
+      -r.totalRents, r.rentsPct,
+      r.totalStoreEbitda, r.storeEbitdaPct,
+      -r.totalAdminCosts, r.adminCostsPct,
       r.totalEbitda, r.ebitdaPct,
       r.totalFcff, r.fcffPct,
-    ].join(','));
+    ].map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','));
     const csv = [headers.join(','), ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -137,17 +137,22 @@ export default function PerformancePage() {
                 <th className={thClass('totalTurnover')} onClick={() => handleSort('totalTurnover')}>Turnover{sortIndicator('totalTurnover')}</th>
                 <th className={thClass('totalTickets')} onClick={() => handleSort('totalTickets')}>Tickets{sortIndicator('totalTickets')}</th>
                 <th className={thClass('avgTicket')} onClick={() => handleSort('avgTicket')}>Avg Ticket{sortIndicator('avgTicket')}</th>
-                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Raw Mat %{sortIndicator('rawMaterialsPct')}</th>
+                <th className={thClass('rawMaterialsPct')} onClick={() => handleSort('rawMaterialsPct')}>Food Cost %{sortIndicator('rawMaterialsPct')}</th>
                 <th className={thClass('staffPct')} onClick={() => handleSort('staffPct')}>Staff %{sortIndicator('staffPct')}</th>
                 <th className={thClass('primeCostPct')} onClick={() => handleSort('primeCostPct')}>Prime Cost %{sortIndicator('primeCostPct')}</th>
-                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Rents %{sortIndicator('rentsPct')}</th>
+
                 <th className={thClass('utilitiesPct')} onClick={() => handleSort('utilitiesPct')}>Utilities %{sortIndicator('utilitiesPct')}</th>
                 <th className={thClass('maintenancePct')} onClick={() => handleSort('maintenancePct')}>Maint. %{sortIndicator('maintenancePct')}</th>
                 <th className={thClass('bankingCostsPct')} onClick={() => handleSort('bankingCostsPct')}>Banking %{sortIndicator('bankingCostsPct')}</th>
                 <th className={thClass('othersPct')} onClick={() => handleSort('othersPct')}>Others %{sortIndicator('othersPct')}</th>
-                <th className={thClass('storeContributionPct')} onClick={() => handleSort('storeContributionPct')}>SC %{sortIndicator('storeContributionPct')}</th>
-                <th className={thClass('totalStoreContribution')} onClick={() => handleSort('totalStoreContribution')}>Store Contribution{sortIndicator('totalStoreContribution')}</th>
+                <th className={thClass('totalStoreEbitdar')} onClick={() => handleSort('totalStoreEbitdar')}>Store EBITDAR{sortIndicator('totalStoreEbitdar')}</th>
+                <th className={thClass('storeEbitdarPct')} onClick={() => handleSort('storeEbitdarPct')}>Store EBITDAR %{sortIndicator('storeEbitdarPct')}</th>
+                <th className={thClass('totalRents')} onClick={() => handleSort('totalRents')}>Leases{sortIndicator('totalRents')}</th>
+                <th className={thClass('rentsPct')} onClick={() => handleSort('rentsPct')}>Leases %{sortIndicator('rentsPct')}</th>
+                <th className={thClass('totalStoreEbitda')} onClick={() => handleSort('totalStoreEbitda')}>Store EBITDA{sortIndicator('totalStoreEbitda')}</th>
+                <th className={thClass('storeEbitdaPct')} onClick={() => handleSort('storeEbitdaPct')}>Store EBITDA %{sortIndicator('storeEbitdaPct')}</th>
                 <th className={thClass('totalAdminCosts')} onClick={() => handleSort('totalAdminCosts')}>Headquarter & Admin.{sortIndicator('totalAdminCosts')}</th>
+                <th className={thClass('adminCostsPct')} onClick={() => handleSort('adminCostsPct')}>Headquarter & Admin. %{sortIndicator('adminCostsPct')}</th>
                 <th className={thClass('totalEbitda')} onClick={() => handleSort('totalEbitda')}>EBITDA{sortIndicator('totalEbitda')}</th>
                 <th className={thClass('ebitdaPct')} onClick={() => handleSort('ebitdaPct')}>EBITDA %{sortIndicator('ebitdaPct')}</th>
                 <th className={thClass('totalFcff')} onClick={() => handleSort('totalFcff')}>FCFF{sortIndicator('totalFcff')}</th>
@@ -166,21 +171,25 @@ export default function PerformancePage() {
                   <td style={{ color: 'var(--text-secondary)' }}>{r.region}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{r.store_type}</td>
                   <td className="numeric">{formatCurrency(r.totalSales)}</td>
-                  <td className="numeric">{formatCurrency(r.totalVat)}</td>
+                  <td className="numeric">{formatCurrency(-r.totalVat)}</td>
                   <td className="numeric">{formatCurrency(r.totalTurnover)}</td>
                   <td className="numeric">{formatNumber(r.totalTickets)}</td>
                   <td className="numeric">{formatCurrency(r.avgTicket)}</td>
                   <td className="numeric">{formatPercent(r.rawMaterialsPct)}</td>
                   <td className={`numeric ${(r.staffPct ?? 0) > 0.30 ? 'cell-warning' : ''}`}>{formatPercent(r.staffPct)}</td>
                   <td className={`numeric ${(r.primeCostPct ?? 0) > 0.60 ? 'cell-negative' : ''}`}>{formatPercent(r.primeCostPct)}</td>
-                  <td className="numeric">{formatPercent(r.rentsPct)}</td>
                   <td className="numeric">{formatPercent(r.utilitiesPct)}</td>
                   <td className="numeric">{formatPercent(r.maintenancePct)}</td>
                   <td className="numeric">{formatPercent(r.bankingCostsPct)}</td>
                   <td className="numeric">{formatPercent(r.othersPct)}</td>
-                  <td className={`numeric ${(r.storeContributionPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(r.storeContributionPct)}</td>
-                  <td className={`numeric ${r.totalStoreContribution >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalStoreContribution)}</td>
-                  <td className="numeric">{formatCurrency(r.totalAdminCosts)}</td>
+                  <td className={`numeric ${(r.totalStoreEbitdar) < 0 ? 'cell-negative' : ''}`}>{formatCurrency(r.totalStoreEbitdar)}</td>
+                  <td className={`numeric ${(r.storeEbitdarPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(r.storeEbitdarPct)}</td>
+                  <td className="numeric">{formatCurrency(-r.totalRents)}</td>
+                  <td className={`numeric ${(r.rentsPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(r.rentsPct)}</td>
+                  <td className={`numeric ${(r.totalStoreEbitda) < 0 ? 'cell-negative' : ''}`}>{formatCurrency(r.totalStoreEbitda)}</td>
+                  <td className={`numeric ${(r.storeEbitdaPct ?? 0) < 0 ? 'cell-negative' : ''}`}>{formatPercent(r.storeEbitdaPct)}</td>
+                  <td className="numeric">{formatCurrency(-r.totalAdminCosts)}</td>
+                  <td className="numeric">{formatPercent(r.adminCostsPct)}</td>
                   <td className={`numeric ${r.totalEbitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalEbitda)}</td>
                   <td className={`numeric ${(r.ebitdaPct ?? 0) >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatPercent(r.ebitdaPct)}</td>
                   <td className={`numeric ${r.totalFcff >= 0 ? 'cell-positive' : 'cell-negative'}`}>{formatCurrency(r.totalFcff)}</td>

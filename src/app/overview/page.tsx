@@ -7,9 +7,10 @@ import {
   AreaChart, Area,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import ProfitWaterfall from '@/components/ui/ProfitWaterfall';
 import KPICard from '@/components/ui/KPICard';
 import { filterByPeriod, aggregate, aggregatePerStore, getMonthlyTrend, aggregateByDimension } from '@/lib/calculations';
-import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
+import { formatCurrency, formatCompact } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
 export default function OverviewPage() {
@@ -27,12 +28,12 @@ export default function OverviewPage() {
   // Per-store aggregation for top/bottom
   const storeAggs = useMemo(() => {
     const map = aggregatePerStore(periodData);
-    return Array.from(map.values()).sort((a, b) => b.totalEbitda - a.totalEbitda);
+    return Array.from(map.values()).sort((a, b) => b.totalStoreEbitdar - a.totalStoreEbitdar);
   }, [periodData]);
 
   // Trend data (all time, not filtered by period)
   const turnoverTrend = useMemo(() => getMonthlyTrend(filteredData, 'turnover'), [filteredData]);
-  const ebitdaTrend = useMemo(() => getMonthlyTrend(filteredData, 'ebitda'), [filteredData]);
+  const ebitdaTrend = useMemo(() => getMonthlyTrend(filteredData, 'store_ebitdar'), [filteredData]);
 
   // Mix by concept
   const conceptMix = useMemo(() => {
@@ -41,58 +42,6 @@ export default function OverviewPage() {
       .map(([name, agg]) => ({ name, turnover: agg.totalTurnover, ebitda: agg.totalEbitda }))
       .sort((a, b) => b.turnover - a.turnover);
   }, [periodData]);
-
-  // Waterfall data
-  const waterfallData = useMemo(() => {
-    const raw = [
-      { name: 'Sales', value: portfolio.totalSales, type: 'total' },
-      { name: 'VAT', value: -portfolio.totalVat, type: 'cost' },
-      { name: 'Turnover', value: portfolio.totalTurnover, type: 'subtotal' },
-      { name: 'Raw Mat.', value: -portfolio.totalRawMaterials, type: 'cost' },
-      { name: 'Staff', value: -portfolio.totalStaff, type: 'cost' },
-      { name: 'Rents', value: -portfolio.totalRents, type: 'cost' },
-      { name: 'Other Costs', value: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalOthers), type: 'cost' },
-      { name: 'Store Contr.', value: portfolio.totalStoreContribution, type: 'subtotal' },
-      { name: 'Admin', value: -portfolio.totalAdminCosts, type: 'cost' },
-      { name: 'EBITDA', value: portfolio.totalEbitda, type: 'subtotal' },
-      { name: 'CAPEX/CIT', value: -(portfolio.totalCapex + portfolio.totalCit), type: 'cost' },
-      { name: 'FCFF', value: portfolio.totalFcff, type: 'subtotal' },
-    ];
-    let currentBase = 0;
-    return raw.map((item) => {
-      let base = 0;
-      let displayValue = 0;
-      let color = '';
-
-      if (item.type === 'total' || item.type === 'subtotal') {
-        base = 0;
-        displayValue = item.value;
-        if (item.name === 'Sales') color = '#3b82f6';
-        else if (item.name === 'Turnover') color = '#06b6d4';
-        else if (item.name === 'Store Contr.') color = '#8b5cf6';
-        else color = item.value >= 0 ? '#10b981' : '#ef4444';
-        currentBase = item.value;
-      } else if (item.type === 'cost') {
-        base = currentBase + item.value;
-        displayValue = Math.abs(item.value);
-        color = '#ef4444';
-        if (item.name === 'CAPEX/CIT') color = '#f59e0b';
-        currentBase += item.value;
-      }
-
-      const pct = ['Sales', 'VAT', 'Turnover'].includes(item.name)
-        ? null
-        : (portfolio.totalTurnover !== 0 ? Math.abs(item.value) / portfolio.totalTurnover : 0);
-
-      return {
-        ...item,
-        base,
-        displayValue,
-        color,
-        pct,
-      };
-    });
-  }, [portfolio]);
 
   // Top / Bottom stores
   const top5 = storeAggs.slice(0, 5);
@@ -125,21 +74,25 @@ export default function OverviewPage() {
 
       {/* KPI Cards */}
       <div className="kpi-grid">
-        <KPICard label="Turnover" value={portfolio.totalTurnover} format="compact" icon="💰" />
-        <KPICard label="Gross Sales" value={portfolio.totalSales} format="compact" icon="🧾" />
-        <KPICard label="Total Tickets" value={portfolio.totalTickets} format="number" icon="🎫" />
+        <KPICard label="Turnover" value={portfolio.totalTurnover} format="compact" />
+        <KPICard label="Gross Sales" value={portfolio.totalSales} format="compact" />
+        <KPICard label="Total Tickets" value={portfolio.totalTickets} format="number" />
         <KPICard label="Avg Ticket" value={portfolio.avgTicket} format="currency" />
-        <KPICard label="EBITDA" value={portfolio.totalEbitda} format="compact" icon="📈" />
-        <KPICard label="FCFF" value={portfolio.totalFcff} format="compact" icon="💵" />
-        <KPICard label="Store Contribution" value={portfolio.totalStoreContribution} format="compact" icon="🏪" />
-        <KPICard label="Raw Materials %" value={portfolio.rawMaterialsPct} format="percent" icon="🥩" />
-        <KPICard label="Staff %" value={portfolio.staffPct} format="percent" icon="👥" />
-        <KPICard label="EBITDA %" value={portfolio.ebitdaPct} format="percent" icon="📊" />
-        <KPICard label="FCFF %" value={portfolio.fcffPct} format="percent" icon="💸" />
-        <KPICard label="Active Stores" value={portfolio.storeCount} format="integer" icon="🏬" />
-        <KPICard label="EBITDA-Negative" value={portfolio.ebitdaNegativeCount} format="integer" icon="🔴" />
-        <KPICard label="FCFF-Negative" value={portfolio.fcffNegativeCount} format="integer" icon="⚠️" />
-        <KPICard label="Store Contr. %" value={portfolio.storeContributionPct} format="percent" icon="🏷️" />
+        <KPICard label="Store EBITDAR" value={portfolio.totalStoreEbitdar} format="compact" />
+        <KPICard label="Store EBITDAR %" value={portfolio.storeEbitdarPct} format="percent" />
+        <KPICard label="Store EBITDA" value={portfolio.totalStoreEbitda} format="compact" />
+        <KPICard label="Store EBITDA %" value={portfolio.storeEbitdaPct} format="percent" />
+        <KPICard label="EBITDA" value={portfolio.totalEbitda} format="compact" />
+        <KPICard label="EBITDA %" value={portfolio.ebitdaPct} format="percent" />
+        <KPICard label="FCFF" value={portfolio.totalFcff} format="compact" />
+        <KPICard label="FCFF %" value={portfolio.fcffPct} format="percent" />
+        <KPICard label="Food Cost %" value={portfolio.rawMaterialsPct} format="percent" />
+        <KPICard label="Staff Cost %" value={portfolio.staffPct} format="percent" />
+        <KPICard label="Active Stores" value={portfolio.storeCount} format="integer" />
+        <KPICard label="Store EBITDAR-Negative" value={portfolio.storeEbitdarNegativeCount} format="integer" />
+        <KPICard label="Store EBITDA-Negative" value={portfolio.storeEbitdaNegativeCount} format="integer" />
+        <KPICard label="EBITDA-Negative" value={portfolio.ebitdaNegativeCount} format="integer" />
+        <KPICard label="FCFF-Negative" value={portfolio.fcffNegativeCount} format="integer" />
       </div>
 
       {/* Trend Charts */}
@@ -169,9 +122,9 @@ export default function OverviewPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* EBITDA Trend */}
+        {/* Store EBITDAR Trend */}
         <div className="chart-container">
-          <div className="chart-title">EBITDA Trend</div>
+          <div className="chart-title">Store EBITDAR Trend</div>
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={ebitdaTrend}>
               <defs>
@@ -184,7 +137,7 @@ export default function OverviewPage() {
               <XAxis dataKey="period" tick={{ fontSize: 10 }} />
               <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <Tooltip
-                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'EBITDA']}
+                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'Store EBITDAR']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
@@ -199,41 +152,7 @@ export default function OverviewPage() {
         {/* P&L Waterfall */}
         <div className="chart-container">
           <div className="chart-title">P&L Waterfall: Sales to VAT to Turnover to FCFF</div>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={waterfallData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-              <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
-              <Tooltip
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px' }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{data.name}</p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: data.color }}>
-                          <span style={{ fontSize: 13 }}>{formatCurrency(data.value)}</span>
-                          {data.pct !== null && (
-                            <span style={{ fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                              {formatPercent(data.pct)} of Turnover
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="base" stackId="a" fill="transparent" fillOpacity={0} />
-              <Bar dataKey="displayValue" stackId="a" radius={[4, 4, 4, 4]}>
-                {waterfallData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <ProfitWaterfall metrics={portfolio} mode="full" />
         </div>
 
         {/* Turnover by Concept */}
@@ -263,35 +182,35 @@ export default function OverviewPage() {
       {/* Top / Bottom Stores */}
       <div className="chart-grid">
         <div className="chart-container">
-          <div className="chart-title">Top 5 Stores by EBITDA</div>
+          <div className="chart-title">Top 5 Stores by Store EBITDAR</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={top5} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="store" width={180} tick={{ fontSize: 9 }} />
               <Tooltip
-                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'EBITDA']}
+                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'Store EBITDAR']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
-              <Bar dataKey="totalEbitda" fill="#10b981" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="totalStoreEbitdar" fill="#10b981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="chart-container">
-          <div className="chart-title">Bottom 5 Stores by EBITDA</div>
+          <div className="chart-title">Bottom 5 Stores by Store EBITDAR</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={bottom5} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="store" width={180} tick={{ fontSize: 9 }} />
               <Tooltip
-                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'EBITDA']}
+                formatter={(v: unknown) => [formatCurrency(Number(v ?? 0)), 'Store EBITDAR']}
                 contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
                 itemStyle={{ color: '#fff' }}
               />
-              <Bar dataKey="totalEbitda" fill="#ef4444" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="totalStoreEbitdar" fill="#ef4444" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

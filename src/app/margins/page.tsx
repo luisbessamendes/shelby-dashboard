@@ -1,16 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, ScatterChart, Scatter,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
-import { filterByPeriod, aggregate, aggregatePerStore } from '@/lib/calculations';
+import ProfitWaterfall from '@/components/ui/ProfitWaterfall';
+import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
+import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregate, aggregatePerStore } from '@/lib/calculations';
 import { formatCurrency, formatCompact } from '@/lib/formatters';
 import { CHART_COLORS } from '@/lib/constants';
 
 export default function MarginsPage() {
+  const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  const profit = PROFIT_METRICS[profitMetric];
   const { filteredData, filters, isLoading } = useFilters();
 
   const periodData = useMemo(() => {
@@ -29,102 +33,61 @@ export default function MarginsPage() {
   const costStack = useMemo(() => {
     if (portfolio.totalTurnover === 0) return [];
     return [
-      { name: 'Raw Mat.', value: (portfolio.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
+      { name: 'Food Cost', value: (portfolio.rawMaterialsPct ?? 0) * 100, fill: '#ef4444' },
       { name: 'Staff', value: (portfolio.staffPct ?? 0) * 100, fill: '#f59e0b' },
-      { name: 'Rents', value: (portfolio.rentsPct ?? 0) * 100, fill: '#8b5cf6' },
       { name: 'Utilities', value: (portfolio.utilitiesPct ?? 0) * 100, fill: '#06b6d4' },
       { name: 'Maint.', value: (portfolio.maintenancePct ?? 0) * 100, fill: '#6b7280' },
       { name: 'Banking', value: (portfolio.bankingCostsPct ?? 0) * 100, fill: '#3b82f6' },
       { name: 'Others', value: (portfolio.othersPct ?? 0) * 100, fill: '#9ca3af' },
-      { name: 'Admin', value: (portfolio.adminCostsPct ?? 0) * 100, fill: '#a78bfa' },
+      { name: 'Leases', value: (portfolio.rentsPct ?? 0) * 100, fill: '#8b5cf6' },
+      { name: 'Headquarter & Admin.', value: (portfolio.adminCostsPct ?? 0) * 100, fill: '#a78bfa' },
     ];
   }, [portfolio]);
 
   // Scatter data: Turnover vs EBITDA %
   const turnoverVsEbitda = useMemo(
-    () => storeAggs.map((s, i) => ({
+    () => storeAggs.filter(s => s[profit.ratio] !== null).map((s, i) => ({
       name: s.store,
       x: s.totalTurnover,
-      y: (s.ebitdaPct ?? 0) * 100,
+      y: (s[profit.ratio] ?? 0) * 100,
       concept: 'concept' in s ? String((s as { concept?: string }).concept) : '',
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
-    [storeAggs]
+    [storeAggs, profit.ratio]
   );
 
   // Staff % vs EBITDA %
   const staffVsEbitda = useMemo(
-    () => storeAggs.map((s, i) => ({
+    () => storeAggs.filter(s => s[profit.ratio] !== null).map((s, i) => ({
       name: s.store,
       x: (s.staffPct ?? 0) * 100,
-      y: (s.ebitdaPct ?? 0) * 100,
+      y: (s[profit.ratio] ?? 0) * 100,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
-    [storeAggs]
+    [storeAggs, profit.ratio]
   );
 
-  // Raw Mat % vs EBITDA %
+  // Food Cost % vs EBITDA %
   const rawMatVsEbitda = useMemo(
-    () => storeAggs.map((s, i) => ({
+    () => storeAggs.filter(s => s[profit.ratio] !== null).map((s, i) => ({
       name: s.store,
       x: (s.rawMaterialsPct ?? 0) * 100,
-      y: (s.ebitdaPct ?? 0) * 100,
+      y: (s[profit.ratio] ?? 0) * 100,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
-    [storeAggs]
+    [storeAggs, profit.ratio]
   );
 
   // Rent % vs EBITDA %
   const rentVsEbitda = useMemo(
-    () => storeAggs.map((s, i) => ({
+    () => storeAggs.filter(s => s[profit.ratio] !== null).map((s, i) => ({
       name: s.store,
       x: (s.rentsPct ?? 0) * 100,
-      y: (s.ebitdaPct ?? 0) * 100,
+      y: (s[profit.ratio] ?? 0) * 100,
       fill: CHART_COLORS[i % CHART_COLORS.length],
     })),
-    [storeAggs]
+    [storeAggs, profit.ratio]
   );
-
-  // Waterfall Calculation Logic
-  const waterfallData = useMemo(() => {
-    let current = 0;
-    const items = [
-      { name: 'Sales', raw: portfolio.totalSales, color: '#3b82f6' },
-      { name: '- VAT', raw: -portfolio.totalVat, color: '#ef4444' },
-      { name: '= Turnover', raw: portfolio.totalTurnover, isTotal: true, color: '#06b6d4' },
-      { name: '- Raw Mat', raw: -portfolio.totalRawMaterials, color: '#ef4444' },
-      { name: '- Staff', raw: -portfolio.totalStaff, color: '#ef4444' },
-      { name: '- Rents', raw: -portfolio.totalRents, color: '#ef4444' },
-      { name: '- Oth. Costs', raw: -(portfolio.totalUtilities + portfolio.totalMaintenance + portfolio.totalBankingCosts + portfolio.totalOthers), color: '#ef4444' },
-      { name: '= EBITDA', raw: portfolio.totalEbitda, isTotal: true, color: portfolio.totalEbitda >= 0 ? '#10b981' : '#ef4444' },
-      { name: '- CPX/CIT', raw: -(portfolio.totalCapex + portfolio.totalCit), color: '#f59e0b' },
-      { name: '= FCFF', raw: portfolio.totalFcff, isTotal: true, color: portfolio.totalFcff >= 0 ? '#10b981' : '#ef4444' },
-    ];
-
-    return items.map(item => {
-      let base = 0;
-      let val = 0;
-
-      if (item.isTotal) {
-        base = 0;
-        val = item.raw;
-        current = item.raw; // Reset current to the total
-      } else {
-        const start = current;
-        const end = current + item.raw;
-        base = Math.min(start, end);
-        val = Math.abs(item.raw);
-        current = end;
-      }
-
-      return {
-        ...item,
-        base,
-        displayValue: val,
-        tooltipValue: item.raw
-      };
-    });
-  }, [portfolio]);
 
   if (isLoading) return <div className="loading-spinner"><div className="spinner" /></div>;
 
@@ -141,7 +104,10 @@ export default function MarginsPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Margin Diagnostics</h1>
+        <div className="flex-between" style={{ flexWrap: 'wrap', gap: 16 }}>
+          <h1 className="page-title">Margin Diagnostics</h1>
+          <ProfitMetricSelect value={profitMetric} onChange={setProfitMetric} />
+        </div>
         <p className="page-description">Understand profitability drivers and isolate margin leakage</p>
       </div>
 
@@ -150,9 +116,9 @@ export default function MarginsPage() {
         <div className="chart-container">
           <div className="chart-title">P&L Cost Structure (% of Turnover)</div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={costStack}>
+            <BarChart data={costStack} margin={{ bottom: 55, right: 25 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} angle={-30} textAnchor="end" />
               <YAxis tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -172,51 +138,20 @@ export default function MarginsPage() {
         {/* Waterfall */}
         <div className="chart-container">
           <div className="chart-title">Sales to VAT to Turnover to FCFF Waterfall</div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={waterfallData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} interval={0} />
-              <YAxis tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }} axisLine={false} tickLine={false} />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="custom-tooltip" style={{ 
-                        background: '#111827', 
-                        border: '1px solid rgba(255,255,255,0.1)', 
-                        padding: '12px', 
-                        borderRadius: '8px' 
-                      }}>
-                        <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
-                        <div style={{ color: '#fff' }}>{formatCurrency(data.tooltipValue)}</div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="base" stackId="a" fill="transparent" fillOpacity={0} />
-              <Bar dataKey="displayValue" stackId="a" radius={[4, 4, 4, 4]}>
-                {waterfallData.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <ProfitWaterfall metrics={portfolio} mode="full" />
         </div>
       </div>
 
       {/* Scatter plots */}
       <div className="chart-grid">
-        {/* Turnover vs EBITDA % */}
+        {/* Turnover vs {profit.label} % */}
         <div className="chart-container">
-          <div className="chart-title">Turnover vs EBITDA % (per store)</div>
+          <div className="chart-title">Turnover vs {profit.label} % (per store)</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" dataKey="x" name="Turnover" tickFormatter={(v: number) => formatCompact(v)} tick={{ fontSize: 10 }} />
-              <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+              <YAxis type="number" dataKey="y" name={`${profit.label} %`} tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
@@ -230,7 +165,7 @@ export default function MarginsPage() {
                       }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
                         <div style={{ color: '#fff', fontSize: '12px' }}>Turnover: {formatCurrency(data.x)}</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA %: {data.y.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>{profit.label} %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
                   }
@@ -246,14 +181,14 @@ export default function MarginsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Staff % vs EBITDA % */}
+        {/* Staff % vs {profit.label} % */}
         <div className="chart-container">
-          <div className="chart-title">Staff % vs EBITDA %</div>
+          <div className="chart-title">Staff % vs {profit.label} %</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" dataKey="x" name="Staff %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
-              <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+              <YAxis type="number" dataKey="y" name={`${profit.label} %`} tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
@@ -267,7 +202,7 @@ export default function MarginsPage() {
                       }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
                         <div style={{ color: '#fff', fontSize: '12px' }}>Staff %: {data.x.toFixed(1)}%</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA %: {data.y.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>{profit.label} %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
                   }
@@ -285,14 +220,14 @@ export default function MarginsPage() {
       </div>
 
       <div className="chart-grid">
-        {/* Raw Materials % vs EBITDA % */}
+        {/* Food Cost % vs {profit.label} % */}
         <div className="chart-container">
-          <div className="chart-title">Raw Materials % vs EBITDA %</div>
+          <div className="chart-title">Food Cost % vs {profit.label} %</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey="x" name="Raw Mat %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
-              <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+              <XAxis type="number" dataKey="x" name="Food Cost %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+              <YAxis type="number" dataKey="y" name={`${profit.label} %`} tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
@@ -305,8 +240,8 @@ export default function MarginsPage() {
                         borderRadius: '8px' 
                       }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>Raw Mat %: {data.x.toFixed(1)}%</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA %: {data.y.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>Food Cost %: {data.x.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>{profit.label} %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
                   }
@@ -322,14 +257,14 @@ export default function MarginsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Rent % vs EBITDA % */}
+        {/* Leases % vs {profit.label} % */}
         <div className="chart-container">
-          <div className="chart-title">Rent % vs EBITDA %</div>
+          <div className="chart-title">Leases % vs {profit.label} %</div>
           <ResponsiveContainer width="100%" height={300}>
             <ScatterChart>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" dataKey="x" name="Rent %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
-              <YAxis type="number" dataKey="y" name="EBITDA %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+              <XAxis type="number" dataKey="x" name="Leases %" tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+              <YAxis type="number" dataKey="y" name={`${profit.label} %`} tickFormatter={(v: number) => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
@@ -342,8 +277,8 @@ export default function MarginsPage() {
                         borderRadius: '8px' 
                       }}>
                         <div style={{ color: '#fff', fontWeight: 600, marginBottom: '4px' }}>{data.name}</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>Rent %: {data.x.toFixed(1)}%</div>
-                        <div style={{ color: '#fff', fontSize: '12px' }}>EBITDA %: {data.y.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>Leases %: {data.x.toFixed(1)}%</div>
+                        <div style={{ color: '#fff', fontSize: '12px' }}>{profit.label} %: {data.y.toFixed(1)}%</div>
                       </div>
                     );
                   }

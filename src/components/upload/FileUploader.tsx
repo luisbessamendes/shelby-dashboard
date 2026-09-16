@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { recordMetric } from '@/lib/calculations';
+import { formatCurrency } from '@/lib/formatters';
 import { parseExcelFile } from '@/lib/excel-parser';
 import { supabase } from '@/lib/supabase';
 import { useFilters } from '@/contexts/FilterContext';
@@ -10,6 +12,7 @@ export default function FileUploader() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<StoreMonthRecord[] | null>(null);
+  const [parseWarnings, setParseWarnings] = useState<string[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null);
   const [fileName, setFileName] = useState('');
@@ -38,6 +41,7 @@ export default function FileUploader() {
     const result = parseExcelFile(buffer);
 
     setParseErrors(result.errors);
+    setParseWarnings(result.warnings);
     setPreview(result.records);
 
     if (result.records.length === 0 && result.errors.length > 0) {
@@ -60,7 +64,7 @@ export default function FileUploader() {
   }, [handleFile]);
 
   const handleCommit = useCallback(async () => {
-    if (!preview || preview.length === 0) return;
+    if (!preview || preview.length === 0 || parseErrors.length > 0) return;
     setIsUploading(true);
     setUploadResult(null);
 
@@ -111,7 +115,7 @@ export default function FileUploader() {
     } finally {
       setIsUploading(false);
     }
-  }, [preview, fileName, refreshData]);
+  }, [preview, fileName, refreshData, parseErrors]);
 
   return (
     <div>
@@ -142,12 +146,22 @@ export default function FileUploader() {
       {/* Parse Errors */}
       {parseErrors.length > 0 && (
         <div className="card mt-24" style={{ borderColor: 'var(--accent-danger)' }}>
-          <div className="card-title" style={{ color: 'var(--accent-danger)' }}>Parse Warnings</div>
+          <div className="card-title" style={{ color: 'var(--accent-danger)' }}>Upload Errors</div>
           <ul style={{ paddingLeft: 20, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             {parseErrors.map((err, i) => (
               <li key={i}>{err}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {parseWarnings.length > 0 && (
+        <div className="pnl-notice mt-24" role="status">
+          <strong>Data checks: {parseWarnings.length} warnings</strong>
+          <ul style={{ paddingLeft: 20, maxHeight: 200, overflow: 'auto' }}>
+            {parseWarnings.slice(0, 100).map((warning, index) => <li key={index}>{warning}</li>)}
+          </ul>
+          {parseWarnings.length > 100 && <p>Showing the first 100 warnings.</p>}
         </div>
       )}
 
@@ -166,7 +180,7 @@ export default function FileUploader() {
             <button
               className="btn btn-primary"
               onClick={handleCommit}
-              disabled={isUploading}
+              disabled={isUploading || parseErrors.length > 0}
             >
               {isUploading ? 'Uploading...' : `Upload ${preview.length} Records`}
             </button>
@@ -187,6 +201,8 @@ export default function FileUploader() {
                     <th className={thClass('sales')} onClick={() => handleSort('sales')}>Sales {sortKey === 'sales' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('vat')} onClick={() => handleSort('vat')}>VAT {sortKey === 'vat' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('turnover')} onClick={() => handleSort('turnover')}>Turnover {sortKey === 'turnover' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th className={thClass('store_ebitdar')} onClick={() => handleSort('store_ebitdar')}>Store EBITDAR</th>
+                    <th className={thClass('store_contribution')} onClick={() => handleSort('store_contribution')}>Store EBITDA</th>
                     <th className={thClass('ebitda')} onClick={() => handleSort('ebitda')}>EBITDA {sortKey === 'ebitda' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                     <th className={thClass('fcff')} onClick={() => handleSort('fcff')}>FCFF {sortKey === 'fcff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</th>
                   </tr>
@@ -197,9 +213,9 @@ export default function FileUploader() {
                     const arr = [...preview];
                     arr.sort((a, b) => {
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const va = (a as any)[sortKey];
+                      const va = sortKey === 'store_ebitdar' ? recordMetric(a, 'store_ebitdar') : (a as any)[sortKey];
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const vb = (b as any)[sortKey];
+                      const vb = sortKey === 'store_ebitdar' ? recordMetric(b, 'store_ebitdar') : (b as any)[sortKey];
                       
                       const numA = typeof va === 'number' ? va : 0;
                       const numB = typeof vb === 'number' ? vb : 0;
@@ -222,6 +238,8 @@ export default function FileUploader() {
                       <td className="numeric">{r.sales?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
                       <td className="numeric">{r.vat?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
                       <td className="numeric">{r.turnover?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}</td>
+                      <td className={`numeric ${recordMetric(r, 'store_ebitdar') < 0 ? 'cell-negative' : ''}`}>{formatCurrency(recordMetric(r, 'store_ebitdar'))}</td>
+                      <td className={`numeric ${r.store_contribution < 0 ? 'cell-negative' : ''}`}>{formatCurrency(r.store_contribution)}</td>
                       <td className={`numeric ${r.ebitda >= 0 ? 'cell-positive' : 'cell-negative'}`}>
                         {r.ebitda?.toLocaleString('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                       </td>

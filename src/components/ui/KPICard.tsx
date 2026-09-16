@@ -32,7 +32,7 @@ export default function KPICard({ label, value, format, trend, icon }: KPICardPr
         {icon && <span style={{ marginRight: 6 }}>{icon}</span>}
         {label}
       </div>
-      <div className="kpi-value">{formattedValue}</div>
+      <div className="kpi-value" style={value != null && value < 0 ? { color: 'var(--accent-danger)' } : undefined}>{formattedValue}</div>
       {trend && (
         <div className={`kpi-trend ${trend.isPositive ? 'positive' : 'negative'}`}>
           <span>{trend.isPositive ? '▲' : '▼'}</span>
