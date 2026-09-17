@@ -1,0 +1,880 @@
+{
+  "source": {
+    "filename": "Shelby - L4L Analysis.xlsx",
+    "sheet": "AUX_ENTITIES_PERIMETER",
+    "sha256": "dc3eec815e61eb546f028f48837a1c4b84d2a63125e711c7960c102e126bc6c8",
+    "classificationColumns": [
+      "I",
+      "J"
+    ],
+    "reviewedThroughYear": 2026
+  },
+  "stores": [
+    {
+      "code": "ALEN_SM_ALEG_ALFR_C02",
+      "store": "Alentejo - Alegro Alfragide",
+      "sourceRow": 2,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_ALEG_SETU_C58",
+      "store": "Alentejo  - Alegro Set\u00fabal",
+      "sourceRow": 3,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_ALMA_COIM_C48",
+      "store": "Alentejo - Alma Coimbra",
+      "sourceRow": 4,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_ASHO_ALBU_C42",
+      "store": "Alentejo - Algarve Shopping",
+      "sourceRow": 5,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_COLO_LISB_C06",
+      "store": "Alentejo - Colombo",
+      "sourceRow": 6,
+      "fy25": "renovation",
+      "ltm": "renovation",
+      "note": "encerrada entre abr24 e ago25",
+      "renovation": {
+        "from": "2024-04",
+        "through": "2025-08"
+      }
+    },
+    {
+      "code": "ALEN_SM_FORU_ALMA_C07",
+      "store": "Alentejo - Almada Forum",
+      "sourceRow": 7,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_FORU_COIM_C48",
+      "store": "Alentejo - Forum Coimbra",
+      "sourceRow": 8,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_SHOP_CASC_C39",
+      "store": "Alentejo - Cascais Shopping",
+      "sourceRow": 9,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_UBBO_LISB_C34",
+      "store": "Alentejo - UBBO",
+      "sourceRow": 10,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEN_SM_VASC_LISB_C37",
+      "store": "Alentejo - Vasco da Gama",
+      "sourceRow": 11,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_ALEG_LISB_C45",
+      "store": "Bifanas - Alegro Alfragide",
+      "sourceRow": 12,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_ALEG_MONT_C57",
+      "store": "Bifanas - Alegro Montijo",
+      "sourceRow": 13,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_ALEG_SETU_C53",
+      "store": "Bifanas - Alegro Set\u00fabal",
+      "sourceRow": 14,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_FORU_COIM_C46",
+      "store": "Bifanas - Forum Coimbra",
+      "sourceRow": 15,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_SHOP_CASC_C22",
+      "store": "Bifanas - Cascais Shopping",
+      "sourceRow": 16,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_SHOP_LOUR_C06",
+      "store": "Bifanas - Loures Shopping",
+      "sourceRow": 17,
+      "fy25": "l4l",
+      "ltm": "closed",
+      "note": "encerrada em jan26",
+      "closed": "2026-01"
+    },
+    {
+      "code": "BIFA_SM_SHOP_OEIR_C27",
+      "store": "Bifanas - Oeiras Parque",
+      "sourceRow": 18,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_UBBO_LISB_C57",
+      "store": "Bifanas - UBBO",
+      "sourceRow": 19,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BIFA_SM_VASC_LISB_C14",
+      "store": "Bifanas - Vasco da Gama",
+      "sourceRow": 20,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BITO_SM_ALMA_COIM_C48",
+      "store": "Bitoque - Alma Coimbra",
+      "sourceRow": 21,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BITO_SM_ARRA_GAIA_C43",
+      "store": "Bitoque - Arr\u00e1bida Shopping",
+      "sourceRow": 22,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BITO_SM_FORU_ALMA_C19",
+      "store": "Bitoque - Almada Forum",
+      "sourceRow": 23,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BITO_SM_FORU_COIM_C35",
+      "store": "Bitoque - Forum Coimbra",
+      "sourceRow": 24,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BITO_SM_MARS_MATO_C20",
+      "store": "Bitoque - Mar Shopping",
+      "sourceRow": 25,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BITO_SM_UBBO_LISB_C23",
+      "store": "Bitoque - UBBO",
+      "sourceRow": 26,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BRAS_SM_ARRA_GAIA_C24",
+      "store": "Brasa Rio - Arr\u00e1bida Shopping",
+      "sourceRow": 27,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BRAS_SM_FORU_AVEI_C36",
+      "store": "Brasa Rio - Forum Aveiro",
+      "sourceRow": 28,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BRAS_SM_MARS_MATO_C26",
+      "store": "Brasa Rio - Mar Shopping",
+      "sourceRow": 29,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BRAS_SM_PARQ_BRAG_C25",
+      "store": "Brasa Rio - Braga Parque",
+      "sourceRow": 30,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "BRAS_SM_SHOP_LEIR_C46",
+      "store": "Brasa Rio - Leiria Shopping",
+      "sourceRow": 31,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_OT_HCUF_PORT_C32",
+      "store": "Espa\u00e7o Gourmet - HCP",
+      "sourceRow": 32,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_OT_ICUF_MATO_C32",
+      "store": "Espa\u00e7o Gourmet - ICP",
+      "sourceRow": 33,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_ALEG_LISB_C03",
+      "store": "Q.S. Nicola - Alegro Alfragide",
+      "sourceRow": 34,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_ALEG_LISB_C05",
+      "store": "Q.S. - Boundi - Alegro Alfragide",
+      "sourceRow": 35,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em out24",
+      "opened": "2024-10",
+      "entryKind": "opening"
+    },
+    {
+      "code": "KIO1_SM_ALEG_SETU_C53",
+      "store": "Q.S. - Alegro Set\u00fabal",
+      "sourceRow": 36,
+      "fy25": "l4l",
+      "ltm": "closed",
+      "note": "encerrou em mar26",
+      "closed": "2026-03"
+    },
+    {
+      "code": "KIO1_SM_ALMA_COIM_C48",
+      "store": "Q.S. - Alma Coimbra",
+      "sourceRow": 37,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_ARRA_GAIA_C56",
+      "store": "Q.S. - Arr\u00e1bida Shopping",
+      "sourceRow": 38,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_ATRI_LISB_C11",
+      "store": "Gourmet Caf\u00e9 - Saldanha",
+      "sourceRow": 39,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_COLO_LISB_C10",
+      "store": "Q.S. - Colombo",
+      "sourceRow": 40,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_FORU_ALMA_C07",
+      "store": "Q.S. - Almada Forum",
+      "sourceRow": 41,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_MARS_MATO_C44",
+      "store": "Q.S. - Nicola - Mar Shopping",
+      "sourceRow": 42,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_PARQ_OEIR_C56",
+      "store": "Gourmet Caf\u00e9 - Oeiras Parque",
+      "sourceRow": 43,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_RIOS_SEIX_C09",
+      "store": "Q.S. - Rio Sul Shopping",
+      "sourceRow": 44,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_SHOP_CASC_C27",
+      "store": "Sical - Cascais Shopping",
+      "sourceRow": 45,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em abr24",
+      "opened": "2024-04",
+      "entryKind": "opening"
+    },
+    {
+      "code": "KIO1_SM_SHOP_CASC_C56",
+      "store": "Gourmet Caf\u00e9 - Cascais Shopping",
+      "sourceRow": 46,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_SHOP_LOUR_C10",
+      "store": "Q.S. - Loures",
+      "sourceRow": 47,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO1_SM_VASC_LISB_C10",
+      "store": "Q.S. - Vasco da Gama",
+      "sourceRow": 48,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO2_SM_COLO_LISB_C10",
+      "store": "Q.S. - Colombo Farggi",
+      "sourceRow": 49,
+      "fy25": "l4l",
+      "ltm": "closed",
+      "note": "encerrou em jan26",
+      "closed": "2026-01"
+    },
+    {
+      "code": "KIO2_SM_FORU_ALMA_C07",
+      "store": "Q.S. - Ruby - Almada Forum",
+      "sourceRow": 50,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO2_SM_PARQ_OEIR_C56",
+      "store": "Q.S. - Oeiras Parque",
+      "sourceRow": 51,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "KIO2_SM_SHOP_CASC_C27",
+      "store": "Sical - Quiosque - Cascais Shopping",
+      "sourceRow": 52,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em abr24",
+      "opened": "2024-04",
+      "entryKind": "opening"
+    },
+    {
+      "code": "KIO2_SM_SHOP_CASC_C56",
+      "store": "Q.S. - Cascais Shopping",
+      "sourceRow": 53,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "MAAT_OT_:::_LISB_C71",
+      "store": "Maat Caf\u00e9 & Kitchen",
+      "sourceRow": 54,
+      "fy25": "new",
+      "ltm": "new",
+      "note": "adquirido em jun25",
+      "opened": "2025-06",
+      "entryKind": "acquisition"
+    },
+    {
+      "code": "POPU_HS_PACO_LISB_C70",
+      "store": "Terra Nova by Populi",
+      "sourceRow": 55,
+      "fy25": "new",
+      "ltm": "new",
+      "note": "adquirido em fev25",
+      "opened": "2025-02",
+      "entryKind": "acquisition"
+    },
+    {
+      "code": "GAFF_HS_CHIA_LISB_C11",
+      "store": "Green Affair - Chiado",
+      "sourceRow": 56,
+      "fy25": "l4l",
+      "ltm": "closed",
+      "note": "encerrou em jan26",
+      "closed": "2026-01"
+    },
+    {
+      "code": "GAFF_HS_DAVI_LISB_C11",
+      "store": "Green Affair - Duque d'\u00c1vila",
+      "sourceRow": 57,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "GAFF_HS_PNAC_LISB_C04",
+      "store": "Green Affair - Parque da Na\u00e7\u00f5es",
+      "sourceRow": 58,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_::_ALMA_C42",
+      "store": "IR - Almancil",
+      "sourceRow": 59,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_::_BRAG_C25",
+      "store": "IR - Braga",
+      "sourceRow": 60,
+      "fy25": "new",
+      "ltm": "new",
+      "note": "abriu em out25",
+      "opened": "2025-10",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_::_FARO_C42",
+      "store": "IR - Faro",
+      "sourceRow": 61,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em abr24",
+      "opened": "2024-04",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_::_GUIM_C41",
+      "store": "IR - Guimar\u00e3es",
+      "sourceRow": 62,
+      "fy25": "l4l",
+      "ltm": "new",
+      "note": "ariu em jun26",
+      "opened": "2026-06",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_::_LEIR_C36",
+      "store": "IR - Leiria",
+      "sourceRow": 63,
+      "fy25": "new",
+      "ltm": "new",
+      "note": "abriu em jun25",
+      "opened": "2025-06",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_::_LISB_C16",
+      "store": "IR - Alvalade",
+      "sourceRow": 64,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_ALIA_PORT_C15",
+      "store": "IR - Av. Aliados",
+      "sourceRow": 65,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu m jan25",
+      "opened": "2025-01",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_AREP_LISB_C14",
+      "store": "IR - La Repubblica",
+      "sourceRow": 66,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em mar24",
+      "opened": "2024-03",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_BAIX_LISB_C10",
+      "store": "IR - Baixa",
+      "sourceRow": 67,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_CHAR_LISB_C07",
+      "store": "IR - Charneca",
+      "sourceRow": 68,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_DAVI_LISB_C16",
+      "store": "IR - Av. Duque d'\u00c1vila",
+      "sourceRow": 69,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_OURA_ALBU_C42",
+      "store": "IR - Oura",
+      "sourceRow": 70,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_OURI_LISB_C33",
+      "store": "IR - Campo de Ourique",
+      "sourceRow": 71,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_HS_PNAC_LISB_C06",
+      "store": "IR - Parque das Na\u00e7\u00f5es",
+      "sourceRow": 72,
+      "fy25": "new",
+      "ltm": "new",
+      "note": "abriu em fev25",
+      "opened": "2025-02",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_HS_RBAR_LISB_C14",
+      "store": "IR - Barata Salgueiro",
+      "sourceRow": 73,
+      "fy25": null,
+      "ltm": "new",
+      "note": "abriu em jan26",
+      "opened": "2026-01",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_SM_ALEG_LISB_C17",
+      "store": "IR - Alegro Alfragide",
+      "sourceRow": 74,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_ALEG_MONT_C07",
+      "store": "IR - Alegro Montijo",
+      "sourceRow": 75,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_ALGS_ALBU_C42",
+      "store": "IR - Algarve Shopping",
+      "sourceRow": 76,
+      "fy25": null,
+      "ltm": "new",
+      "note": "abriu em jan26",
+      "opened": "2026-01",
+      "entryKind": "opening"
+    },
+    {
+      "code": "ITRE_SM_AMOR_LISB_C17",
+      "store": "IR - Amoreiras",
+      "sourceRow": 77,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_ARRB_GAIA_C41",
+      "store": "IR - Arr\u00e1bida Shopping",
+      "sourceRow": 78,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_AUCH_CASC_C33",
+      "store": "IR - Auchan Cascais",
+      "sourceRow": 79,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_COLO_LISB_C17",
+      "store": "IR - Colombo",
+      "sourceRow": 80,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_FORU_ALMA_C16",
+      "store": "IR - Almada Forum",
+      "sourceRow": 81,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_FORU_COIM_C51",
+      "store": "IR - Forum Coimbra",
+      "sourceRow": 82,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_GLIC_AVEI_C47",
+      "store": "IR - Glic\u00ednias Aveiro",
+      "sourceRow": 83,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_MARS_MATO_C50",
+      "store": "IR - Mar Shopping",
+      "sourceRow": 84,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_NORT_MATO_C43",
+      "store": "IR - Norte Shopping",
+      "sourceRow": 85,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_PARQ_BRAG_C50",
+      "store": "IR - Braga Parque",
+      "sourceRow": 86,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_RIOS_SEIX_C07",
+      "store": "IR - Rio Sul Shopping",
+      "sourceRow": 87,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_SHOP_LEIR_C47",
+      "store": "IR - Leiria Shopping",
+      "sourceRow": 88,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ITRE_SM_UBBO_LISB_C33",
+      "store": "IR - UBBO",
+      "sourceRow": 89,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "ALEC_HS_SOBR_ALMA_C69",
+      "store": "Maria Alecrim - Sobreda",
+      "sourceRow": 90,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em fev24",
+      "opened": "2024-02",
+      "entryKind": "opening"
+    },
+    {
+      "code": "AZEI_HS_::_AMAD_C18",
+      "store": "Maria Azeitona - Amadora",
+      "sourceRow": 91,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "AZEI_HS_::_TIRE_C18",
+      "store": "Maria Azeitona - Tires",
+      "sourceRow": 92,
+      "fy25": "l4l",
+      "ltm": "closed",
+      "note": "encerrou em jan26",
+      "closed": "2026-01"
+    },
+    {
+      "code": "AZEI_HS_COUR_LISB_C18",
+      "store": "Maria Azeitona - Campo de Ourique",
+      "sourceRow": 93,
+      "fy25": null,
+      "ltm": "new",
+      "note": "abertura set26",
+      "opened": "2026-09",
+      "entryKind": "opening"
+    },
+    {
+      "code": "AZEI_HS_CPEQ_LISB_C18",
+      "store": "Maria Azeitona - Campo Pequeno",
+      "sourceRow": 94,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "CANE_OT_IBIS_LISB_C64",
+      "store": "Maria Canela - Ibis Aeroporto",
+      "sourceRow": 95,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "abriu em jul24",
+      "opened": "2024-07",
+      "entryKind": "opening"
+    },
+    {
+      "code": "AZUR_OT_NOVA_CARC_C08",
+      "store": "Carcavelos - Azure",
+      "sourceRow": 96,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "CATE_OT_::_LISB_C75",
+      "store": "Maria Papoila Catering",
+      "sourceRow": 97,
+      "fy25": null,
+      "ltm": "new",
+      "note": "adquirido em abr26",
+      "opened": "2026-04",
+      "entryKind": "acquisition"
+    },
+    {
+      "code": "CHIE_SM_ALVA_LISB_C18",
+      "store": "Mercato Di Chiesa",
+      "sourceRow": 98,
+      "fy25": "new",
+      "ltm": "new",
+      "note": "adquirido em fev25",
+      "opened": "2025-02",
+      "entryKind": "acquisition"
+    },
+    {
+      "code": "FARO_HS_::_MATO_C44",
+      "store": "Farol da Boa Nova - Ribeira Porto",
+      "sourceRow": 99,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "UDON_HS_DAVI_LISB_C11",
+      "store": "UDON",
+      "sourceRow": 100,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "DOCE_HS_::_CORR_C69",
+      "store": "Doce Creme",
+      "sourceRow": 101,
+      "fy25": "new",
+      "ltm": "l4l",
+      "note": "adquirida em abr24",
+      "opened": "2024-04",
+      "entryKind": "acquisition"
+    },
+    {
+      "code": "PBAI_HS_AEUR_PALM_C59",
+      "store": "PdB - Autoeuropa",
+      "sourceRow": 102,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "PBAI_HS_CHIA_LISB_C59",
+      "store": "PdB - Chiado",
+      "sourceRow": 103,
+      "fy25": "l4l",
+      "ltm": "closed",
+      "note": "encerrou em abr26",
+      "closed": "2026-04"
+    },
+    {
+      "code": "PBAI_HS_DAVI_LISB_C59",
+      "store": "PdB  - Duque d'\u00c1vila",
+      "sourceRow": 104,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "PBAI_HS_ESTE_LISB_C59",
+      "store": "PdB - Estef\u00e2nia",
+      "sourceRow": 105,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "PBAI_HS_MMON_LISB_C59",
+      "store": "PdB - Martim Moniz",
+      "sourceRow": 106,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "PBAI_SM_ALEG_MONT_C09",
+      "store": "PdB - Alegro Montijo",
+      "sourceRow": 107,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "PBAI_SM_UBBO_LISB_C59",
+      "store": "PdB - UBBO",
+      "sourceRow": 108,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "SERR_HS_IGRE_LISB_C63",
+      "store": "Serra da Estrela - Av. Igreja",
+      "sourceRow": 109,
+      "fy25": "renovation",
+      "ltm": "l4l",
+      "note": "encerrada entre mar24 e set24",
+      "renovation": {
+        "from": "2024-03",
+        "through": "2024-09"
+      }
+    },
+    {
+      "code": "SERR_SM_AMOR_LISB_C12",
+      "store": "Serra da Estrela - Amoreiras",
+      "sourceRow": 110,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "SERR_SM_COLO_LISB_C08",
+      "store": "Serra da Estrela - Colombo",
+      "sourceRow": 111,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "SERR_SM_MARS_MATO_C13",
+      "store": "Serra da Estrela - Mar Shopping",
+      "sourceRow": 112,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    },
+    {
+      "code": "SERR_SM_VASC_LISB_C12",
+      "store": "Serra da Estrela - Vasco da Gama",
+      "sourceRow": 113,
+      "fy25": "l4l",
+      "ltm": "l4l"
+    }
+  ]
+}

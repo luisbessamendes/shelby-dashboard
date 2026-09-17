@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer,
 import { useFilters } from '@/contexts/FilterContext';
 import { buildPerimeterComparison, buildPerimeterWaterfall, COHORTS, perimeterAxisDomain, perimeterValue } from '@/lib/perimeter';
 import type { PerimeterColumn, PerimeterModel, PerimeterStep } from '@/lib/perimeter';
+import { PERIMETER_REGISTRY_SOURCE } from '@/lib/perimeter-registry';
 import { PNL_ROWS, type PnlRowDefinition } from '@/lib/pnl-rows';
 import { formatCurrency, formatCurrencyDetail, formatNumber, formatPercent, formatPercentPP, formatTrend } from '@/lib/formatters';
 import styles from './PerimeterAnalysis.module.css';
@@ -55,10 +56,10 @@ function BridgeChart({ model, row }: { model: PerimeterModel; row: PnlRowDefinit
               <XAxis dataKey="id" interval={0} tick={({ x, y, index: tickIndex }) => {
                 const step = steps[tickIndex];
                 if (!step) return <g />;
-                const shortLabel = step.total ? step.label : `${step.label.replace(' Stores (inferred)', '').replace(' Stores', '').replace(' / Not Comparable', '')} ${step.id.startsWith('fy25:') ? '25' : `LTM ${yearLabel(model.endpoint)}`}`;
+                const shortLabel = step.total ? step.label : `${COHORTS.find(cohort => cohort.key === step.cohort)?.shortLabel} ${step.id.startsWith('fy25:') ? '25' : `LTM ${yearLabel(model.endpoint)}`}`;
                 return <g transform={`translate(${x},${y})`}>
                   <text y={16} textAnchor="middle" fill="var(--text-secondary)" fontSize={11}>{shortLabel}</text>
-                  {step.cohort === 'new' && <text x={45} y={38} textAnchor="middle" fill="var(--text-primary)" fontSize={11} fontWeight={600}>{step.concept}</text>}
+                  {step.cohort === 'closed' && <text y={38} textAnchor="middle" fill="var(--text-primary)" fontSize={11} fontWeight={600}>{step.concept}</text>}
                 </g>;
               }} />
               <YAxis domain={domain} allowDataOverflow tickFormatter={axisFormat} width={90} tick={{ fontSize: 11 }} />
@@ -107,7 +108,10 @@ export default function PerimeterAnalysis() {
   ];
   return <div className={styles.analysis}>
     <div className={styles.period}>FY 2024 / FY 2025 / {model.endpoint} {model.provisional && <strong>Provisional</strong>}</div>
-    {model.notices.map(notice => <p className="pnl-notice" role="status" key={notice}>{notice}</p>)}
+    {model.notices.length > 0 && <details className="pnl-notice">
+      <summary>{model.notices.length} data-quality notices. Figures are provisional.</summary>
+      <ul className={styles.issueList}>{model.notices.map(notice => <li key={notice}>{notice}</li>)}</ul>
+    </details>}
     {model.stages.map(stage => <div className={styles.cohorts} key={stage.key}>
       <h3>{stage.label}</h3>
       {COHORTS.map(cohort => <span key={cohort.key}>{cohort.label} <strong>{stage.stores.filter(store => store.cohort === cohort.key).length}</strong></span>)}
@@ -121,7 +125,7 @@ export default function PerimeterAnalysis() {
             <td>{store.name}</td><td>{store.concept}</td>{model.stages.map(stage => {
               const classified = stage.stores.find(item => item.id === store.id);
               return <td key={stage.key} className={styles.auditBasis}>
-                {classified ? <><strong>{COHORTS.find(c => c.key === classified.cohort)?.label}</strong><div>{classified.reason}</div></> : 'No records in these windows.'}
+                {classified ? <><strong>{COHORTS.find(c => c.key === classified.cohort)?.label}</strong><div>{classified.reason}</div>{classified.warnings.map(warning => <div key={warning}>{warning}</div>)}</> : 'No activity in these windows.'}
               </td>;
             })}
           </tr>)}</tbody>
@@ -131,8 +135,9 @@ export default function PerimeterAnalysis() {
     <details className={styles.details}>
       <summary>Comparison methodology</summary>
       <p>Two comparisons: FY 2024 to FY 2025, then FY 2025 to the trailing 12 months through the selected endpoint. The second comparison is not calendar-year 2026 and may overlap FY 2025. Both are independent of Monthly / YTD / LTM mode. Sales means Gross Sales.</p>
-      <p>Stores are classified separately for each stage. L4L requires positive sales in every month of both windows and the intervening history. New Stores means first observed trading after that stage&apos;s baseline year, including pre-opening costs and any later exit. Closed Stores is an inference requiring at least three consecutive reported zero-sales months after a fully traded baseline year; later observed reopening prevents this classification. It is not a verified closure date.</p>
-      <p>Other includes temporary interruptions, partial baseline years and annualisation, missing reports and business classification changes. An interruption may reflect renovation, but its cause cannot be confirmed from these records alone.</p>
+      <p>Classification source: {PERIMETER_REGISTRY_SOURCE.filename}, {PERIMETER_REGISTRY_SOURCE.sheet}, columns I and J. Stores are matched by Code and classified separately for each bridge. The register covers 2026 LTM endpoints; later years require updated classifications.</p>
+      <p>Openings / Annualisation includes openings and acquisitions affecting either comparison period. A March 2025 opening stays in Opening for both FY 2024 to FY 2025 and FY 2025 to LTM 2026: the partial FY 2025 baseline must not inflate L4L. A January opening is treated as operating from that month, consistent with the register. L4L requires two full years of comparable operation and complete monthly reporting.</p>
+      <p>Confirmed closures and renovations are separate movements, qualified by the event months in the register. Future events do not create trading in earlier periods; actual pre-opening and post-closure costs are retained. Opening / annualisation takes precedence if a store also exits before becoming comparable. Unknown classifications, missing L4L reports and ambiguous identities go to Other / Review, never inferred openings or closures. Store classification identifies each workbook row and any conflicting reported sales.</p>
       <p>Amount movements equal each cohort&apos;s later period less its baseline, including residual costs. Cost deductions are negative. Percentage rows use total Turnover; Average Ticket uses Gross Sales / Tickets. These non-additive rows have no cohort impacts. Total Change compares the final LTM with FY 2024: an absolute difference, or percentage points for ratios, not YoY growth. Missing values appear as {'\u2014'}; unreported periods are not evidence of closure.</p>
       <p>Chart tooltip percentage changes divide the movement by that concept and cohort&apos;s baseline amount, using its absolute value when negative. Zero or missing baseline amounts have no percentage change.</p>
     </details>

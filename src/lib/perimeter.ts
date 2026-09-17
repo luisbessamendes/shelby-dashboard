@@ -1,13 +1,16 @@
 import { aggregate, comparisonChange, pnlReconciliationIssues } from './calculations';
 import { MONTH_SHORT_NAMES } from './constants';
+import { expectsPerimeterReport, indexPerimeterRegistry, normalizePerimeterCode, PERIMETER_REGISTRY, PERIMETER_REGISTRY_SOURCE, registryMonth } from './perimeter-registry';
+import type { PerimeterRegistryEntry } from './perimeter-registry';
 import type { PnlRowDefinition } from './pnl-rows';
 import type { AggregatedMetrics, FilterState, StoreMonthRecord } from './types';
 
 export const COHORTS = [
-  { key: 'l4l', label: 'L4L', column: 'L4L Change' },
-  { key: 'new', label: 'New Stores', column: 'New Impact' },
-  { key: 'closed', label: 'Closed Stores (inferred)', column: 'Closed Impact' },
-  { key: 'other', label: 'Other / Not Comparable', column: 'Other Impact' },
+  { key: 'l4l', label: 'L4L', shortLabel: 'L4L', column: 'L4L Change' },
+  { key: 'new', label: 'Openings / Annualisation', shortLabel: 'Opening', column: 'Opening Impact' },
+  { key: 'closed', label: 'Closed Stores', shortLabel: 'Closed', column: 'Closed Impact' },
+  { key: 'renovation', label: 'Renovation', shortLabel: 'Renov.', column: 'Renovation Impact' },
+  { key: 'other', label: 'Other / Review', shortLabel: 'Other', column: 'Other Impact' },
 ] as const;
 export type Cohort = typeof COHORTS[number]['key'];
 export type PerimeterStageKey = 'fy25' | 'ltm';
@@ -19,6 +22,7 @@ export interface PerimeterStore {
   concept: string;
   cohort: Cohort;
   reason: string;
+  warnings: string[];
 }
 interface PeriodPair {
   baseline: AggregatedMetrics | null;
@@ -55,15 +59,16 @@ const MIDDLE_END = MIDDLE_START + 11;
 const index = (r: Pick<StoreMonthRecord, 'year' | 'month'>) => r.year * 12 + r.month - 1;
 const sequence = (start: number, end: number) => Array.from({ length: Math.max(0, end - start + 1) }, (_, i) => start + i);
 const monthLabel = (value: number) => `${Math.floor(value / 12)}-${String(value % 12 + 1).padStart(2, '0')}`;
+const amountFields = ['tickets', 'sales', 'vat', 'turnover', 'raw_materials', 'staff', 'rents', 'utilities', 'maintenance', 'banking_costs', 'others', 'store_contribution', 'admin_costs', 'ebitda', 'capex', 'cit', 'fcff'] as const;
 
 function identityResolver(records: StoreMonthRecord[]) {
   const codes = new Map<string, Set<string>>();
   for (const r of records) {
-    if (r.code?.trim()) codes.set(r.store, (codes.get(r.store) ?? new Set()).add(r.code.trim()));
+    if (r.code?.trim()) codes.set(r.store, (codes.get(r.store) ?? new Set()).add(normalizePerimeterCode(r.code)));
   }
   return (r: StoreMonthRecord) => {
     const known = codes.get(r.store);
-    const code = r.code?.trim() || (known?.size === 1 ? [...known][0] : '');
+    const code = r.code?.trim() ? normalizePerimeterCode(r.code) : (known?.size === 1 ? [...known][0] : '');
     return code ? `code:${code}` : `store:${r.store}`;
   };
 }
@@ -80,46 +85,64 @@ function coverage(records: StoreMonthRecord[], end: number, identity: (r: StoreM
   return { months, suspect };
 }
 
-function classify(id: string, allHistory: StoreMonthRecord[], stage: PerimeterStage, suspect: Set<number>): PerimeterStore {
+function classify(id: string, allHistory: StoreMonthRecord[], stage: PerimeterStage, entry: PerimeterRegistryEntry | null | undefined): PerimeterStore {
   const { end, baselineYear } = stage;
   const start = baselineYear * 12;
-  const baselineEnd = start + 11;
   const history = allHistory.filter(r => index(r) <= end);
   const latest = history.reduce((a, b) => index(a) > index(b) ? a : b);
-  const result = (cohort: Cohort, reason: string): PerimeterStore => ({ id, name: latest.store, concept: latest.concept, cohort, reason });
+  const warnings: string[] = [];
+  const source = entry ? `Workbook ${stage.key === 'fy25' ? 'I' : 'J'}${entry.sourceRow}. ` : '';
+  const result = (cohort: Cohort, reason: string): PerimeterStore => ({ id, name: latest.store, concept: latest.concept, cohort, reason: source + reason, warnings });
   const scopedHistory = history.filter(r => index(r) >= start);
   const months = new Map(scopedHistory.map(r => [index(r), r]));
   if (months.size !== scopedHistory.length) return result('other', 'Duplicate store/month records or an ambiguous store code.');
   if (id.startsWith('store:')) return result('other', 'No reliable store code; name matching only.');
+  if (!entry) return result('other', 'No unique matching classification in the store register. Review required; no lifecycle event inferred.');
+  if (stage.key === 'ltm' && Math.floor(end / 12) !== PERIMETER_REGISTRY_SOURCE.reviewedThroughYear) {
+    return result('other', 'The register covers 2026 endpoints only. Review classifications for this endpoint year.');
+  }
   const dimensions = ['concept', 'region', 'location', 'legal_entity', 'store_type'] as const;
-  if (dimensions.some(key => new Set(scopedHistory.map(r => r[key])).size > 1)) {
-    return result('other', 'Business classification changed during this comparison.');
+  const changedDimensions = dimensions.some(key => new Set(scopedHistory.map(r => r[key])).size > 1);
+  const invalidSales = scopedHistory.some(r => !Number.isFinite(r.sales) || r.sales < 0);
+  if (changedDimensions) warnings.push('Business classification changed during this comparison; uploaded dimensions and source amounts retained.');
+  if (invalidSales) warnings.push('Missing or negative sales require data review; lifecycle classification retained from the register.');
+  const missingReports = sequence(start, end).filter(m => expectsPerimeterReport(entry, m) && !months.has(m));
+  if (missingReports.length) warnings.push(`Missing expected reports: ${missingReports.map(monthLabel).join(', ')}. Totals may be incomplete.`);
+  const opened = registryMonth(entry.opened);
+  const closed = registryMonth(entry.closed);
+  const renovationStart = registryMonth(entry.renovation?.from);
+  const renovationEnd = registryMonth(entry.renovation?.through);
+  const registered = entry[stage.key];
+  const entryLabel = entry.entryKind === 'acquisition' ? 'Acquisition' : 'Opening';
+  if (opened !== null && entry.entryKind !== 'acquisition' && scopedHistory.some(r => index(r) < opened && r.sales > 0)) {
+    warnings.push(`Sales reported before the registered opening ${entry.opened}; source figures retained.`);
   }
-  if (scopedHistory.some(r => !Number.isFinite(r.sales) || r.sales < 0)) return result('other', 'Missing or negative sales require review.');
-  const trading = history.filter(r => r.sales > 0).map(index).sort((a, b) => a - b);
-  if (!trading.length) return result('other', 'Cost-only records; no observed trading.');
-  const first = trading[0];
-  const last = trading[trading.length - 1];
-  const positive = (m: number) => (months.get(m)?.sales ?? 0) > 0;
-  if (sequence(start, end).every(positive)) return result('l4l', 'Positive sales in both full annual windows and every intervening month.');
-  const firstInScope = trading.find(m => m >= start);
-  if (firstInScope !== undefined && !sequence(firstInScope, last).every(positive)) {
-    return result('other', 'Trading interruption or missing reports followed by resumed trading. Cause unconfirmed; may include temporary closure.');
+  if (closed !== null && scopedHistory.some(r => index(r) > closed && r.sales > 0)) {
+    warnings.push(`Sales reported after the registered closure ${entry.closed}; source figures retained.`);
   }
-  const resumesLater = allHistory.some(r => index(r) > end && r.sales > 0);
-  if (last < end && resumesLater) return result('other', 'Trading stopped during this comparison and resumed later in the available reported history. Temporary interruption; cause unconfirmed.');
-  if (first > baselineEnd && !sequence(start, baselineEnd).some(m => suspect.has(m))) {
-    return result('new', `First observed trading ${monthLabel(first)}; includes pre-opening costs${last < end ? ' and any subsequent cessation of trading' : ''}. Entry is inferred, not a verified opening date.`);
+  if (opened !== null && opened > end) {
+    return result('new', `${entryLabel} ${entry.opened} is after this endpoint. Only actual pre-opening records are included; not an operating L4L store.`);
   }
-  // Absence of reports is not evidence of closure. Require a reported zero-sales tail.
-  const tail = sequence(last + 1, end);
-  if (last >= baselineEnd && sequence(start, last).every(positive) && tail.length >= 3
-    && tail.every(m => months.get(m)?.sales === 0 && !suspect.has(m))) {
-    return result('closed', `Inferred cessation after ${monthLabel(last)}: at least three consecutive reported zero-sales months through the endpoint. Not a confirmed closure; residual costs retained.`);
+  // A partial baseline stays Opening, even when the later LTM already has 12 months.
+  if (opened !== null && opened > Math.min(start, end - 11)) {
+    return result('new', `${entryLabel} ${entry.opened}; at least one comparison period is not a full year in the perimeter. Opening and annualisation changes stay outside L4L, including any exit costs.`);
   }
-  if (!sequence(start, baselineEnd).every(positive)) return result('other', `Partial FY ${baselineYear} trading, annualisation, reopening, or incomplete baseline history.`);
-  if (last < end) return result('other', `Last observed trading ${monthLabel(last)}; missing reports or insufficient evidence to infer closure.`);
-  return result('other', 'Interrupted trading or missing months; not continuously comparable.');
+  if (closed !== null && closed <= end) {
+    return result('closed', `Confirmed closure ${entry.closed}. Actual trading and residual costs retained; missing post-closure rows do not imply continued trading.`);
+  }
+  if (renovationStart !== null && renovationEnd !== null && renovationStart <= end && renovationEnd >= start) {
+    return result('renovation', `Confirmed renovation ${entry.renovation!.from} to ${entry.renovation!.through} affects the comparison. Recorded revenue and costs retained.`);
+  }
+  // Future closure/renovation labels must not affect an earlier comparison endpoint.
+  const futureEvent = (registered === 'closed' && closed !== null && closed > end)
+    || (registered === 'renovation' && renovationStart !== null && renovationStart > end);
+  if (registered === 'new') return result('new', 'Registered opening / annualisation for this bridge. Actual period difference remains outside L4L.');
+  if (registered === 'renovation' && !futureEvent) return result('renovation', 'Registered renovation for this bridge; recorded revenue and costs retained.');
+  if (registered === 'closed' && !futureEvent) return result('other', 'Closure classification has no usable event month. Review the endpoint before assigning the impact.');
+  if (registered !== 'l4l' && !(futureEvent && entry.fy25 === 'l4l')) return result('other', 'No approved L4L classification before this event or for this bridge. Source figures retained for review.');
+  if (changedDimensions || invalidSales) return result('other', 'Registered L4L, but business classification or sales data require review before treating the periods as comparable.');
+  if (!sequence(start, end).every(m => months.has(m))) return result('other', 'Registered L4L, but monthly reports are missing in the comparable history. Excluded from L4L pending data review.');
+  return result('l4l', `${futureEvent ? 'Registered L4L in the preceding bridge; the confirmed later event is after this endpoint.' : 'Registered L4L.'} Complete monthly reporting and no opening, closure or renovation affecting either full-year period.`);
 }
 
 function periodPair(records: StoreMonthRecord[], stage: PerimeterStage, available: { baseline: boolean; current: boolean }): PeriodPair {
@@ -132,6 +155,7 @@ function periodPair(records: StoreMonthRecord[], stage: PerimeterStage, availabl
 
 export function buildPerimeterComparison(
   allRecords: StoreMonthRecord[], filters: PerimeterFilters, year: number, month: number, now = new Date(),
+  registry: readonly PerimeterRegistryEntry[] = PERIMETER_REGISTRY,
 ): PerimeterModel {
   const end = year * 12 + month - 1;
   const model: PerimeterModel = {
@@ -145,6 +169,8 @@ export function buildPerimeterComparison(
 
   const history = allRecords.filter(r => index(r) <= end);
   const identity = identityResolver(allRecords);
+  const register = indexPerimeterRegistry(registry);
+  const registration = (id: string) => register.get(id.replace(/^code:/, ''));
   const { months, suspect } = coverage(history, end, identity);
   const available = {
     baseline: sequence(BASE_START, BASE_END).every(m => months.has(m)),
@@ -155,7 +181,7 @@ export function buildPerimeterComparison(
   if (!available.fy25) model.notices.push('FY 2025 has missing calendar months. Its totals and both bridge stages are unavailable.');
   if (!available.current) model.notices.push(`${model.endpoint} has missing calendar months. Its totals and bridge movements are unavailable.`);
   const lowCoverage = [...suspect].filter(m => months.has(m));
-  if (lowCoverage.length) model.notices.push(`Potentially incomplete reporting: ${lowCoverage.map(monthLabel).join(', ')}. Store count fell more than 20% below the preceding three-month median. Figures are provisional; closures are not inferred across these gaps.`);
+  if (lowCoverage.length) model.notices.push(`Potentially incomplete reporting: ${lowCoverage.map(monthLabel).join(', ')}. Store count fell more than 20% below the preceding three-month median. Figures are provisional; lifecycle classifications come from the store register, not reporting gaps.`);
   model.provisional = suspect.size > 0 || end === now.getFullYear() * 12 + now.getMonth();
   if (end === now.getFullYear() * 12 + now.getMonth()) model.notices.push('The endpoint month is still in progress. Reported figures are provisional.');
 
@@ -165,15 +191,6 @@ export function buildPerimeterComparison(
     const rows = histories.get(id) ?? [];
     rows.push(r);
     histories.set(id, rows);
-  }
-  // Reopening evidence must not disappear when the user selects an earlier endpoint.
-  const knownHistories = new Map<string, StoreMonthRecord[]>();
-  const reportedEnd = now.getFullYear() * 12 + now.getMonth();
-  for (const r of allRecords.filter(r => index(r) <= reportedEnd)) {
-    const id = identity(r);
-    const rows = knownHistories.get(id) ?? [];
-    rows.push(r);
-    knownHistories.set(id, rows);
   }
   model.stages = [
     { key: 'fy25', label: 'FY 2024 to FY 2025', baselineYear: 2024, end: MIDDLE_END, stores: [] },
@@ -188,6 +205,21 @@ export function buildPerimeterComparison(
     ['concept', filters.concepts], ['region', filters.regions], ['location', filters.locations],
     ['legal_entity', filters.legalEntities], ['store_type', filters.storeTypes],
   ] as const;
+  // Missing stores have no uploaded dimensions to filter by. Report them only for
+  // portfolio scope (or an explicit store selection), without inventing amounts.
+  if (activeDimensions.every(([, values]) => values.length === 0)) {
+    const unreported = registry.filter(entry => {
+      if (filters.stores.length && !filters.stores.includes(entry.store)) return false;
+      const inWindows = (m: number) => (m >= BASE_START && m <= MIDDLE_END) || (m >= end - 11 && m <= end);
+      const expected = sequence(BASE_START, end).some(m => inWindows(m) && expectsPerimeterReport(entry, m));
+      const reported = histories.get(`code:${normalizePerimeterCode(entry.code)}`)?.some(r => inWindows(index(r)));
+      return expected && !reported;
+    });
+    if (unreported.length) {
+      model.provisional = true;
+      model.notices.push(`${unreported.length} registered store(s) expected by this endpoint have no financial records: ${unreported.map(entry => entry.store).join('; ')}. No amounts have been invented for these stores.`);
+    }
+  }
   const selected = history.filter(r => (filters.stores.length === 0 || selectedIdsByName.has(identity(r)))
     && activeDimensions.every(([field, values]) => values.length === 0 || values.includes(r[field]))
     && ((index(r) >= BASE_START && index(r) <= MIDDLE_END) || (index(r) >= end - 11 && index(r) <= end)));
@@ -200,21 +232,27 @@ export function buildPerimeterComparison(
   if (!selected.length) return { ...model, blocked: 'No records match these filters in FY 2024, FY 2025 or the selected LTM window.' };
   const reportingGaps = [...histories].filter(([id, rows]) => {
     if (!selectedIds.has(id)) return false;
-    const tradingMonths = rows.filter(r => r.sales > 0).map(index);
-    if (!tradingMonths.length) return false;
+    const entry = registration(id);
+    const first = registryMonth(entry?.opened) ?? BASE_START;
     const reportedMonths = new Set(rows.map(index));
-    return sequence(Math.max(BASE_START, Math.min(...tradingMonths)), end).some(m => !reportedMonths.has(m));
+    return sequence(Math.max(BASE_START, first), end).some(m => expectsPerimeterReport(entry, m) && !reportedMonths.has(m));
   });
   if (reportingGaps.length) {
     model.provisional = true;
-    model.notices.push(`Reporting gaps affect ${reportingGaps.length} selected store(s) after first observed trading. Totals include only reported records and may be incomplete; missing months are not confirmed closures.`);
+    model.notices.push(`Reporting gaps affect ${reportingGaps.length} selected store(s) outside registered non-operating periods. Totals include only reported records and may be incomplete; missing months are not treated as closures.`);
   }
   const stageClassifications = new Map<PerimeterStageKey, Map<string, PerimeterStore>>();
   for (const stage of model.stages) {
     const relevant = new Set(selected.filter(r => (index(r) >= stage.baselineYear * 12 && index(r) <= stage.baselineYear * 12 + 11)
       || (index(r) >= stage.end - 11 && index(r) <= stage.end)).map(identity));
-    const classified = [...histories].filter(([id]) => relevant.has(id)).map(([id, rows]) => {
-      const store = classify(id, knownHistories.get(id) ?? rows, stage, suspect);
+    const classified = [...histories].filter(([id, rows]) => {
+      if (!relevant.has(id)) return false;
+      const opened = registryMonth(registration(id)?.opened);
+      // Zero placeholders for future stores must not inflate operating-store counts.
+      return opened === null || opened <= stage.end || rows.some(r => index(r) >= stage.baselineYear * 12 && index(r) <= stage.end
+        && amountFields.some(field => r[field] !== 0));
+    }).map(([id, rows]) => {
+      const store = classify(id, rows, stage, registration(id));
       if (ambiguous.has(id)) {
         store.cohort = 'other';
         store.reason = 'Multiple codes for the same store name; identity needs review.';
@@ -222,6 +260,15 @@ export function buildPerimeterComparison(
       return store;
     });
     stage.stores = classified.sort((a, b) => a.concept.localeCompare(b.concept) || a.name.localeCompare(b.name));
+    const review = classified.filter(store => store.cohort === 'other');
+    if (review.length) {
+      model.provisional = true;
+      model.notices.push(`${stage.label}: ${review.length} store(s) in Other / Review. See Store classification for the source and reason.`);
+    }
+    for (const store of classified) for (const warning of store.warnings) {
+      model.provisional = true;
+      model.notices.push(`${stage.label} / ${store.name}: ${warning}`);
+    }
     stageClassifications.set(stage.key, new Map(classified.map(store => [store.id, store])));
   }
   const concepts = new Map<string, StoreMonthRecord[]>();
