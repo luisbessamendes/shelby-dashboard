@@ -12,9 +12,9 @@ const { PNL_ROWS } = require('../src/lib/pnl-rows.ts');
 const output = path.resolve('outputs/perimeter-qa');
 await mkdir(output, { recursive: true });
 const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3001';
-function history(name, code, concept, start = 0, end = 30, more = {}) {
+function history(name, code, concept, start = -5, end = 30, more = {}) {
   return Array.from({ length: end - start + 1 }, (_, i) => storeMonth({ store: name, code, concept,
-    year: 2024 + Math.floor((start + i) / 12), month: (start + i) % 12 + 1, ...more }));
+    year: 2024 + Math.floor((start + i) / 12), month: (((start + i) % 12) + 12) % 12 + 1, ...more }));
 }
 function zeroSales(record) {
   // Retain every cost and reconcile the source subtotals after removing revenue.
@@ -24,17 +24,18 @@ function zeroSales(record) {
 }
 const data = [
   ...history('Alentejo A', 'ALEN_SM_ALEG_ALFR_C2', 'Alentejo'),
-  ...history('Alentejo B', 'ALEN_SM_ALMA_COIM_C48', 'Alentejo', 0, 30, { location: 'Mall B', legal_entity: 'Entity B' }),
+  ...history('Alentejo B', 'ALEN_SM_ALMA_COIM_C48', 'Alentejo', -5, 30, { location: 'Mall B', legal_entity: 'Entity B' }),
   ...history('Bifanas New', 'ITRE_HS_::_BRAG_C25', 'Bifanas', 21, 30, { region: 'Porto', location: 'Street', legal_entity: 'Entity C', store_type: 'High Street' }),
   ...history('Bifanas Closed', 'BIFA_SM_SHOP_LOUR_C6', 'Bifanas').map(r => r.year === 2026 ? zeroSales(r) : r),
   ...history('Coffee Partial', 'KIO1_SM_SHOP_CASC_C27', 'Coffee Shop', 3),
   ...history('Alentejo Renovation', 'ALEN_SM_COLO_LISB_C6', 'Alentejo')
     .map(r => (r.year === 2024 && r.month >= 4) || (r.year === 2025 && r.month <= 8) ? zeroSales(r) : r),
 ];
-const model = buildPerimeterComparison(data, filters(), 2026, 7);
+const model = buildPerimeterComparison(data, filters(), 'ytd', 2026, 7);
 assert.equal(model.blocked, null);
 assert.deepEqual(model.reconciliationIssues, []);
 const currency = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+let suppliedData = data;
 const errors = [];
 const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
@@ -42,7 +43,7 @@ await context.route('**/rest/v1/**', async route => {
   if (route.request().method() !== 'GET') await route.abort();
   assert.equal(route.request().method(), 'GET', 'No database writes allowed in browser tests');
   assert.equal(new URL(route.request().url()).pathname, '/rest/v1/fact_store_month', 'Only monthly financial records are mocked');
-  return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) });
+  return route.fulfill({ contentType: 'application/json', body: JSON.stringify(suppliedData) });
 });
 const page = await context.newPage();
 page.on('pageerror', error => errors.push(error.message));
@@ -51,6 +52,7 @@ try {
   await page.getByRole('heading', { name: 'Segment Analysis' }).waitFor();
   await page.waitForFunction(() => document.querySelector('.filter-bar select')?.value === '2026');
   const dimension = page.getByRole('combobox', { name: 'Dimension' });
+  await page.getByRole('button', { name: 'YTD', exact: true }).click();
   await dimension.selectOption('perimeter');
   await page.locator('.pnl-table').waitFor();
   assert.equal(await page.getByRole('combobox', { name: 'Profit Measure' }).count(), 0);
@@ -60,8 +62,8 @@ try {
   assert.equal(await page.getByRole('heading', { name: 'Store EBITDAR Bridge' }).count(), 1);
   const groupLabels = ['Alentejo', 'Bifanas', 'Coffee Shop', 'Portfolio Total'];
   const impactLabels = ['L4L Change', 'Opening Impact', 'Closed Impact', 'Renovation Impact', 'Other Impact'];
-  const columnLabels = ['FY 2024', ...impactLabels.map(label => `${label} 25`), 'FY 2025',
-    ...impactLabels.map(label => `${label} LTM 26`), 'LTM Jul 2026', 'Total Change'];
+  const columnLabels = ['YTD Jul 2024', ...impactLabels.map(label => `${label} YTD Jul 25`), 'YTD Jul 2025',
+    ...impactLabels.map(label => `${label} YTD Jul 26`), 'YTD Jul 2026', 'Total Change'];
   assert.deepEqual(await page.locator('.pnl-group-header').allTextContents(), groupLabels);
   assert.deepEqual(await page.locator('.pnl-group-header').evaluateAll(headers => headers.map(header => header.colSpan)), [14, 14, 14, 14]);
   assert.deepEqual(await page.locator('.pnl-period-header').allTextContents(), groupLabels.flatMap(() => columnLabels));
@@ -69,17 +71,30 @@ try {
   assert.equal(await values.count(), 56);
   const portfolioValues = async cells => (await cells.allTextContents()).slice(groupLabels.indexOf('Portfolio Total') * columnLabels.length);
   // EUR 1,200 sales / EUR 380 EBITDAR per trading month; non-trading costs remain EUR 620 before rent.
-  const expectedSales = [57600, 0, 7200, 0, 1200, 0, 66000, 0, 8400, -8400, 8400, 0, 74400, 16800].map(currency);
+  const expectedSales = [33600, 0, 3600, 0, -3600, 0, 33600, 0, 8400, -8400, 8400, 0, 42000, 8400].map(currency);
   assert.deepEqual(await portfolioValues(values), expectedSales);
   const ebitdarValues = page.locator('tr').filter({ has: page.getByRole('rowheader', { name: 'Store EBITDAR', exact: true }) }).locator('td');
-  assert.deepEqual(await portfolioValues(ebitdarValues), [12660, 0, 2280, 0, 1000, 0, 15940, 0, 2660, -7000, 7000, 0, 18600, 5940].map(currency));
-  assert.equal(await page.getByRole('columnheader', { name: 'FY 2025', exact: true }).count(), 4);
-  for (const mode of ['YTD', 'LTM', 'Monthly']) {
+  assert.deepEqual(await portfolioValues(ebitdarValues), [8160, 0, 1140, 0, -3000, 0, 6300, 0, 2660, -7000, 7000, 0, 8960, 800].map(currency));
+  assert.equal(await page.getByRole('columnheader', { name: 'YTD Jul 2025', exact: true }).count(), 4);
+  for (const [mode, checkpoints] of [['Monthly', [4800, 4800, 6000]], ['LTM', [57600, 57600, 74400]], ['YTD', [33600, 33600, 42000]]]) {
     await page.getByRole('button', { name: mode, exact: true }).click();
-    assert.deepEqual(await portfolioValues(values), expectedSales);
+    const prefix = mode === 'Monthly' ? '' : `${mode} `;
+    await page.waitForFunction(label => document.querySelector('.pnl-period-header')?.textContent === label, `${prefix}Jul 2024`);
+    const actual = await portfolioValues(values);
+    assert.deepEqual([actual[0], actual[6], actual[12]], checkpoints.map(currency));
+    for (const chart of await page.locator('section[aria-label$="Bridge"]').all()) {
+      const labels = await chart.locator('.recharts-xAxis-tick-labels').textContent();
+      for (const year of [2024, 2025, 2026]) assert.ok(labels.includes(`${prefix}Jul ${year}`));
+    }
   }
+  await page.locator('.filter-bar select').nth(1).selectOption('6');
+  await page.waitForFunction(() => document.querySelector('.pnl-period-header')?.textContent === 'YTD Jun 2024');
+  const june = await portfolioValues(values);
+  assert.deepEqual([june[0], june[6], june[12]], [28800, 28800, 36000].map(currency));
+  await page.locator('.filter-bar select').nth(1).selectOption('7');
+  await page.waitForFunction(() => document.querySelector('.pnl-period-header')?.textContent === 'YTD Jul 2024');
   const cohortLabels = ['L4L', 'Openings / Annualisation', 'Closed Stores', 'Renovation', 'Other / Review'];
-  for (const [stage, counts] of [['FY 2024 to FY 2025', [3, 2, 0, 1, 0]], ['FY 2025 to LTM Jul 2026', [3, 1, 1, 1, 0]]]) {
+  for (const [stage, counts] of [['YTD Jul 2024 to YTD Jul 2025', [3, 1, 0, 1, 0]], ['YTD Jul 2025 to YTD Jul 2026', [3, 1, 1, 1, 0]]]) {
     const summary = page.getByRole('heading', { name: stage, exact: true }).locator('..');
     assert.deepEqual(await summary.locator('span').allTextContents(), cohortLabels.map((label, i) => `${label} ${counts[i]}`));
   }
@@ -87,7 +102,7 @@ try {
   const audit = page.locator('details[open]').filter({ has: page.getByText('Store classification (6)', { exact: true }) });
   for (const [name, cohorts] of [
     ['Alentejo A', ['L4L', 'L4L']], ['Alentejo B', ['L4L', 'L4L']],
-    ['Bifanas New', ['Openings / Annualisation', 'Openings / Annualisation']],
+    ['Bifanas New', ['Openings / Annualisation']],
     ['Bifanas Closed', ['L4L', 'Closed Stores']], ['Coffee Partial', ['Openings / Annualisation', 'L4L']],
     ['Alentejo Renovation', ['Renovation', 'Renovation']],
   ]) {
@@ -95,7 +110,7 @@ try {
     assert.deepEqual(await row.locator('td strong').allTextContents(), cohorts, `${name}: both registry-backed stages`);
   }
   const openingAudit = audit.getByRole('row').filter({ has: page.getByRole('cell', { name: 'Bifanas New', exact: true }) });
-  for (const source of ['I60', 'J60']) assert.match(await openingAudit.innerText(), new RegExp(`Workbook ${source}\\. Opening 2025-10`));
+  for (const source of ['J60']) assert.match(await openingAudit.innerText(), new RegExp(`Workbook ${source}\\. Opening 2025-10`));
   assert.match(await audit.innerText(), /Confirmed closure 2026-01/);
   assert.match(await audit.innerText(), /Confirmed renovation 2024-04 to 2025-08/);
   assert.doesNotMatch(await audit.innerText(), /inferred|No unique matching classification/);
@@ -147,7 +162,7 @@ try {
     assert.ok(await bars.evaluateAll(elements => elements.filter(el => {
       const box = el.getBoundingClientRect();
       return box.width > 0 && box.height > 0 && el.querySelector('path')?.getAttribute('d');
-    }).length >= 9), 'Three totals and six nonzero movements must render real shapes');
+    }).length >= 8), 'Three totals and five nonzero movements must render real shapes');
     // Use model IDs only to locate ticks, then find the painted bar at that X coordinate.
     // Zero movements do not render rectangles; zoom also clips totals at the plot boundary.
     const hoverStep = async id => {
@@ -173,20 +188,20 @@ try {
     const tooltip = chart.locator('.recharts-tooltip-wrapper');
     const isSales = row.id === 'grossSales';
     const checks = [
-      ['fy25', 'FY 2025', isSales ? 66000 : 15940],
-      ['fy25:concept:Bifanas:new', 'Bifanas: Openings / Annualisation', isSales ? 3600 : 1140, '\u2014'],
-      ['ltm:concept:Bifanas:new', 'Bifanas: Openings / Annualisation', isSales ? 8400 : 2660, '+233.3%'],
-      ['fy25:concept:Alentejo:renovation', 'Alentejo: Renovation', isSales ? 1200 : 1000, isSales ? '+33.3%' : '+22.5%'],
-      ['ltm:concept:Alentejo:renovation', 'Alentejo: Renovation', isSales ? 8400 : 7000, isSales ? '+175.0%' : '+203.5%'],
-      ['ltm:concept:Bifanas:closed', 'Bifanas: Closed Stores', isSales ? -8400 : -7000, isSales ? '-58.3%' : '-153.5%'],
+      ['middle', 'YTD Jul 2025', isSales ? 33600 : 6300],
+      ['previous:concept:Coffee Shop:new', 'Coffee Shop: Openings / Annualisation', isSales ? 3600 : 1140, '+75.0%'],
+      ['current:concept:Bifanas:new', 'Bifanas: Openings / Annualisation', isSales ? 8400 : 2660, '\u2014'],
+      ['previous:concept:Alentejo:renovation', 'Alentejo: Renovation', isSales ? -3600 : -3000, isSales ? '-100.0%' : '-223.9%'],
+      ['current:concept:Alentejo:renovation', 'Alentejo: Renovation', isSales ? 8400 : 7000, isSales ? '\u2014' : '+161.3%'],
+      ['current:concept:Bifanas:closed', 'Bifanas: Closed Stores', isSales ? -8400 : -7000, isSales ? '-100.0%' : '-263.2%'],
     ];
     for (const [id, label, amount, changePct] of checks) {
       await hoverStep(id);
       await tooltip.getByText(label, { exact: true }).waitFor({ state: 'visible' });
-      const total = id === 'fy25';
+      const total = id === 'middle';
       await tooltip.getByText(`${total ? 'Total' : 'Change'}: ${currency(amount)}`, { exact: true }).waitFor({ state: 'visible' });
       if (!total) {
-        await tooltip.getByText(id.startsWith('fy25:') ? 'FY 2024 to FY 2025' : 'FY 2025 to LTM Jul 2026', { exact: true }).waitFor({ state: 'visible' });
+        await tooltip.getByText(id.startsWith('previous:') ? 'YTD Jul 2024 to YTD Jul 2025' : 'YTD Jul 2025 to YTD Jul 2026', { exact: true }).waitFor({ state: 'visible' });
         assert.ok((await tooltip.innerText()).includes(`Change %: ${changePct}`));
         assert.match(await tooltip.innerText(), /Running total:.*\u20ac/s);
       }
@@ -218,6 +233,14 @@ try {
   await page.getByText('Select a comparison endpoint', { exact: true }).waitFor();
   await page.locator('.filter-bar select').nth(1).selectOption('7');
   await page.locator('.pnl-table').waitFor();
+  await page.locator('.filter-bar select').first().selectOption('');
+  await page.getByText('Select a comparison endpoint', { exact: true }).waitFor();
+  await page.locator('.filter-bar select').first().selectOption('2025');
+  await page.waitForFunction(() => document.querySelector('.pnl-period-header')?.textContent === 'Jul 2023');
+  assert.equal(await page.getByRole('columnheader', { name: 'Jul 2025', exact: true }).count(), 4);
+  await page.locator('.filter-bar select').first().selectOption('2026');
+  await page.getByRole('button', { name: 'YTD', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.pnl-period-header')?.textContent === 'YTD Jul 2024');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('heading', { level: 1 }).scrollIntoViewIfNeeded();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -241,8 +264,25 @@ try {
   await dimension.selectOption('concept');
   await page.getByRole('combobox', { name: 'Profit Measure' }).waitFor();
   assert.equal(await page.locator('.segment-table').count(), 1);
+  // Missing 2023 history must never become an FY2024 fallback or a zero baseline.
+  suppliedData = data.filter(r => r.year >= 2024);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('.filter-bar select')?.value === '2026');
+  await dimension.selectOption('perimeter');
+  await page.getByRole('button', { name: 'LTM', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.pnl-period-header')?.textContent === 'LTM Jul 2024');
+  const missing = await portfolioValues(values);
+  assert.equal(missing[0], '\u2014');
+  assert.equal(missing[1], '\u2014');
+  assert.equal(missing[6], currency(57600));
+  assert.equal(await page.getByText('Bridge unavailable: one or more comparison values are missing.', { exact: true }).count(), 2);
+  assert.equal(await page.locator('.recharts-bar-rectangle').count(), 0);
+  await page.getByRole('button', { name: 'Monthly', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('.pnl-period-header')?.textContent === 'Jul 2024');
+  assert.equal((await portfolioValues(values))[0], currency(4800));
+  assert.ok(await page.locator('.recharts-bar-rectangle').count() > 0);
   assert.deepEqual(errors, []);
-  console.log('L4L browser checks passed: registry-backed five cohorts, Opening in both stages, Renovation, retained closure costs, 56-cell table, both waterfalls and tooltips, zoom/full axis, filters, unchanged global modes, sticky headers/column, mobile, existing dimension. No database writes.');
+  console.log('L4L browser checks passed: registry-backed five cohorts, Opening in both stages, Renovation, retained closure costs, 56-cell table, both waterfalls and tooltips, zoom/full axis, filters, Monthly/YTD/LTM checkpoints, sticky headers/column, mobile, existing dimension. No database writes.');
 } catch (error) {
   await page.screenshot({ path: path.join(output, 'failure.png'), fullPage: true });
   console.error('URL:', page.url(), 'Page errors:', errors);

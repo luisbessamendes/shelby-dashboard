@@ -18,7 +18,7 @@ function displayValue(row: PnlRowDefinition, value: number | null, column: Perim
 
 function valueClass(row: PnlRowDefinition, value: number | null, column: PerimeterColumn) {
   if (value === null) return '';
-  if (column === 'baseline' || column === 'fy25' || column === 'current') {
+  if (column === 'baseline' || column === 'middle' || column === 'current') {
     return (row.id === 'primeCostPct' && value > 0.6)
       || (row.id.startsWith('storeEbitd') || row.id.startsWith('ebitda')) && value < 0 ? 'cell-negative' : '';
   }
@@ -40,7 +40,7 @@ function BridgeChart({ model, row }: { model: PerimeterModel; row: PnlRowDefinit
   return <section className={styles.chartSection} aria-label={title}>
     <div className={styles.chartHeading}>
       <h2>{title}</h2>
-      <span>FY 2024 / FY 2025 / {model.endpoint}{model.provisional ? ' (provisional)' : ''}</span>
+      <span>{model.periods.map(p => p.label).join(' / ')}{model.provisional ? ' (provisional)' : ''}</span>
     </div>
     {!steps.length ? <p className="pnl-notice">Bridge unavailable: one or more comparison values are missing.</p> :
       <>
@@ -50,16 +50,17 @@ function BridgeChart({ model, row }: { model: PerimeterModel; row: PnlRowDefinit
       </div>
       <div className={styles.chartScroll} role="region" tabIndex={0} aria-label={`Scrollable ${title}`}>
         <div style={{ minWidth: Math.max(900, steps.length * 90) }}>
-          <ResponsiveContainer width="100%" height={370}>
-            <BarChart data={steps} margin={{ top: 18, right: 20, bottom: 60, left: 10 }} accessibilityLayer>
+          <ResponsiveContainer width="100%" height={390}>
+            <BarChart data={steps} margin={{ top: 18, right: 20, bottom: 76, left: 10 }} accessibilityLayer>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="id" interval={0} tick={({ x, y, index: tickIndex }) => {
                 const step = steps[tickIndex];
                 if (!step) return <g />;
-                const shortLabel = step.total ? step.label : `${COHORTS.find(cohort => cohort.key === step.cohort)?.shortLabel} ${step.id.startsWith('fy25:') ? '25' : `LTM ${yearLabel(model.endpoint)}`}`;
+                const shortLabel = step.total ? step.label : COHORTS.find(cohort => cohort.key === step.cohort)?.shortLabel;
                 return <g transform={`translate(${x},${y})`}>
                   <text y={16} textAnchor="middle" fill="var(--text-secondary)" fontSize={11}>{shortLabel}</text>
-                  {step.cohort === 'closed' && <text y={38} textAnchor="middle" fill="var(--text-primary)" fontSize={11} fontWeight={600}>{step.concept}</text>}
+                  {!step.total && <text y={32} textAnchor="middle" fill="var(--text-secondary)" fontSize={11}>{step.periodLabel}</text>}
+                  {step.cohort === 'closed' && <text y={54} textAnchor="middle" fill="var(--text-primary)" fontSize={11} fontWeight={600}>{step.concept}</text>}
                 </g>;
               }} />
               <YAxis domain={domain} allowDataOverflow tickFormatter={axisFormat} width={90} tick={{ fontSize: 11 }} />
@@ -86,28 +87,25 @@ function BridgeChart({ model, row }: { model: PerimeterModel; row: PnlRowDefinit
   </section>;
 }
 
-function yearLabel(endpoint: string) {
-  return endpoint.slice(-2);
-}
-
 export default function PerimeterAnalysis() {
   const { allData, filters } = useFilters();
-  const { year, month, stores, concepts, regions, locations, legalEntities, storeTypes } = filters;
+  const { periodBasis, year, month, stores, concepts, regions, locations, legalEntities, storeTypes } = filters;
   const model = useMemo(() => year && month
-    ? buildPerimeterComparison(allData, { stores, concepts, regions, locations, legalEntities, storeTypes }, year, month) : null,
-  [allData, year, month, stores, concepts, regions, locations, legalEntities, storeTypes]);
+    ? buildPerimeterComparison(allData, { stores, concepts, regions, locations, legalEntities, storeTypes }, periodBasis, year, month) : null,
+  [allData, periodBasis, year, month, stores, concepts, regions, locations, legalEntities, storeTypes]);
   if (!model) return <div className="empty-state"><div className="empty-state-title">Select a comparison endpoint</div><p>Choose a Year and Month in the header.</p></div>;
   if (model.blocked) return <div className="pnl-notice" role="status">{model.blocked}</div>;
+  const periodSummary = model.periods.map(p => p.label).join(' / ');
   const columns: { key: PerimeterColumn; label: string; title?: string }[] = [
-    { key: 'baseline', label: 'FY 2024' },
-    ...COHORTS.map(cohort => ({ key: `fy25:${cohort.key}` as const, label: `${cohort.column} 25`, title: `${cohort.label}: FY 2025 minus FY 2024` })),
-    { key: 'fy25', label: 'FY 2025' },
-    ...COHORTS.map(cohort => ({ key: `ltm:${cohort.key}` as const, label: `${cohort.column} LTM ${yearLabel(model.endpoint)}`, title: `${cohort.label}: ${model.endpoint} minus FY 2025` })),
-    { key: 'current', label: model.endpoint },
+    { key: 'baseline', label: model.periods[0].label },
+    ...model.stages.flatMap(stage => [
+      ...COHORTS.map(cohort => ({ key: `${stage.key}:${cohort.key}` as PerimeterColumn, label: `${cohort.column} ${stage.current.shortLabel}`, title: `${cohort.label}: ${stage.current.label} minus ${stage.baseline.label}` })),
+      { key: stage.key === 'previous' ? 'middle' as const : 'current' as const, label: stage.current.label },
+    ]),
     { key: 'change', label: 'Total Change', title: 'Absolute amount change; margin change in percentage points. Not YoY growth.' },
   ];
   return <div className={styles.analysis}>
-    <div className={styles.period}>FY 2024 / FY 2025 / {model.endpoint} {model.provisional && <strong>Provisional</strong>}</div>
+    <div className={styles.period}>{periodSummary} {model.provisional && <strong>Provisional</strong>}</div>
     {model.notices.length > 0 && <details className="pnl-notice">
       <summary>{model.notices.length} data-quality notices. Figures are provisional.</summary>
       <ul className={styles.issueList}>{model.notices.map(notice => <li key={notice}>{notice}</li>)}</ul>
@@ -134,11 +132,11 @@ export default function PerimeterAnalysis() {
     </details>
     <details className={styles.details}>
       <summary>Comparison methodology</summary>
-      <p>Two comparisons: FY 2024 to FY 2025, then FY 2025 to the trailing 12 months through the selected endpoint. The second comparison is not calendar-year 2026 and may overlap FY 2025. Both are independent of Monthly / YTD / LTM mode. Sales means Gross Sales.</p>
-      <p>Classification source: {PERIMETER_REGISTRY_SOURCE.filename}, {PERIMETER_REGISTRY_SOURCE.sheet}, columns I and J. Stores are matched by Code and classified separately for each bridge. The register covers 2026 LTM endpoints; later years require updated classifications.</p>
-      <p>Openings / Annualisation includes openings and acquisitions affecting either comparison period. A March 2025 opening stays in Opening for both FY 2024 to FY 2025 and FY 2025 to LTM 2026: the partial FY 2025 baseline must not inflate L4L. A January opening is treated as operating from that month, consistent with the register. L4L requires two full years of comparable operation and complete monthly reporting.</p>
+      <p>Two comparisons: {model.stages.map(s => s.label).join(', then ')}. All three checkpoints follow the header: Monthly uses the selected month, YTD uses January through that month, and LTM uses the trailing 12 months ending in that month, in each respective year. Sales means Gross Sales.</p>
+      <p>Classification source: {PERIMETER_REGISTRY_SOURCE.filename}, {PERIMETER_REGISTRY_SOURCE.sheet}, columns I and J. Stores are matched by Code and classified separately for each bridge. Column I covers 2024 to 2025; column J covers 2025 to 2026. Other comparison years require updated classifications and are shown in Other / Review.</p>
+      <p>Openings / Annualisation includes openings and acquisitions affecting either comparison period, plus the register&apos;s approved annualisation classifications. A March 2025 opening stays in Opening for both the 2024 to 2025 and 2025 to 2026 bridges, including Monthly mode, so it cannot inflate L4L. An opening is treated as operating from its recorded month. L4L requires comparable operation and complete reporting in both selected windows.</p>
       <p>Confirmed closures and renovations are separate movements, qualified by the event months in the register. Future events do not create trading in earlier periods; actual pre-opening and post-closure costs are retained. Opening / annualisation takes precedence if a store also exits before becoming comparable. Unknown classifications, missing L4L reports and ambiguous identities go to Other / Review, never inferred openings or closures. Store classification identifies each workbook row and any conflicting reported sales.</p>
-      <p>Amount movements equal each cohort&apos;s later period less its baseline, including residual costs. Cost deductions are negative. Percentage rows use total Turnover; Average Ticket uses Gross Sales / Tickets. These non-additive rows have no cohort impacts. Total Change compares the final LTM with FY 2024: an absolute difference, or percentage points for ratios, not YoY growth. Missing values appear as {'\u2014'}; unreported periods are not evidence of closure.</p>
+      <p>Amount movements equal each cohort&apos;s later period less its baseline, including residual costs. Cost deductions are negative. Percentage rows use total Turnover; Average Ticket uses Gross Sales / Tickets. These non-additive rows have no cohort impacts. Total Change compares {model.periods[2].label} with {model.periods[0].label}: an absolute difference, or percentage points for ratios, not YoY growth. Every selected period needs all its calendar months in the uploaded history. Incomplete periods and their movements appear as {'\u2014'}; unreported periods are not evidence of closure.</p>
       <p>Chart tooltip percentage changes divide the movement by that concept and cohort&apos;s baseline amount, using its absolute value when negative. Zero or missing baseline amounts have no percentage change.</p>
     </details>
     {model.reconciliationIssues.length > 0 && <details className="pnl-notice">
@@ -148,7 +146,7 @@ export default function PerimeterAnalysis() {
     <div className={`data-table-container pnl-table-container ${styles.tableContainer}`}>
       <div className={`pnl-table-summary ${styles.summary}`}>
         <span>{model.stores.length} stores / {model.groups.length - 1} concepts</span>
-        <span className="pnl-table-summary-period">FY 2024 / FY 2025 / {model.endpoint}{model.provisional ? ' (provisional)' : ''}</span>
+        <span className="pnl-table-summary-period">{periodSummary}{model.provisional ? ' (provisional)' : ''}</span>
       </div>
       <div className="pnl-table-wrapper" role="region" tabIndex={0} aria-label="Scrollable L4L P and L comparison table">
         <table className={`pnl-table ${styles.table}`}>
@@ -159,13 +157,13 @@ export default function PerimeterAnalysis() {
             </tr>
             <tr>{model.groups.flatMap(group => columns.map((column, i) => <th key={`${group.id}:${column.key}`} scope="col"
               title={column.title ?? column.label}
-              className={`pnl-period-header ${i === 0 ? 'pnl-group-start' : ''} ${column.key === 'current' || column.key === 'fy25' ? 'pnl-current-header' : ''} ${group.id === 'portfolio' ? 'pnl-portfolio-total' : ''}`}>{column.label}</th>))}</tr>
+              className={`pnl-period-header ${i === 0 ? 'pnl-group-start' : ''} ${column.key === 'current' || column.key === 'middle' ? 'pnl-current-header' : ''} ${group.id === 'portfolio' ? 'pnl-portfolio-total' : ''}`}>{column.label}</th>))}</tr>
           </thead>
           <tbody>{PNL_ROWS.map(row => <tr key={row.id} className={`${row.sectionStart ? 'pnl-section-start' : ''} ${row.emphasis ? 'pnl-emphasis-row' : ''}`}>
             <th scope="row" className="pnl-row-label">{row.label}</th>
             {model.groups.flatMap(group => columns.map((column, i) => {
               const value = perimeterValue(row, group, column.key);
-              return <td key={`${group.id}:${column.key}`} className={`pnl-value-cell ${i === 0 ? 'pnl-group-start' : ''} ${column.key === 'current' || column.key === 'fy25' ? 'pnl-current-cell' : ''} ${group.id === 'portfolio' ? 'pnl-portfolio-total' : ''} ${valueClass(row, value, column.key)}`}>
+              return <td key={`${group.id}:${column.key}`} className={`pnl-value-cell ${i === 0 ? 'pnl-group-start' : ''} ${column.key === 'current' || column.key === 'middle' ? 'pnl-current-cell' : ''} ${group.id === 'portfolio' ? 'pnl-portfolio-total' : ''} ${valueClass(row, value, column.key)}`}>
                 {displayValue(row, value, column.key)}
               </td>;
             }))}
