@@ -47,8 +47,8 @@ function periodRecords(
   year: number,
   month: number,
 ): StoreMonthRecord[] {
-  if (key === 'fyOlder') return records.filter(record => record.year === year - 2);
-  if (key === 'fyRecent') return records.filter(record => record.year === year - 1);
+  if (key === 'fyOlder') return filterByPeriod(records, basis, year - 2, month);
+  if (key === 'fyRecent') return filterByPeriod(records, basis, year - 1, month);
   if (key === 'currentPrior') return filterByPeriod(records, basis, year - 1, month);
   return filterByPeriod(records, basis, year, month);
 }
@@ -108,17 +108,18 @@ export function buildPnlComparison(
 ): PnlComparisonModel {
   const currentLtmComplete = basis !== 'ltm' || hasCompleteLtmWindow(records, year, month);
   const priorLtmComplete = basis !== 'ltm' || hasCompleteLtmWindow(records, year - 1, month);
+  const olderLtmComplete = basis !== 'ltm' || hasCompleteLtmWindow(records, year - 2, month);
   const periodAvailability: Record<PnlValuePeriodKey, boolean> = {
-    fyOlder: true,
-    fyRecent: true,
+    fyOlder: olderLtmComplete,
+    fyRecent: priorLtmComplete,
     currentPrior: priorLtmComplete,
     current: currentLtmComplete,
   };
 
   const columns: PnlColumnDefinition[] = [
-    { key: 'fyOlder', label: `FY ${year - 2}`, valueKey: 'fyOlder' },
-    { key: 'fyRecent', label: `FY ${year - 1}`, valueKey: 'fyRecent' },
-    { key: 'fyYoy', label: 'YoY / pp', title: `FY ${year - 1} vs FY ${year - 2}: amount growth in %, margin change in percentage points`, valueKey: 'fyRecent', compareKey: 'fyOlder' },
+    { key: 'fyOlder', label: currentPeriodLabel(basis, year - 2, month), valueKey: 'fyOlder' },
+    { key: 'fyRecent', label: currentPeriodLabel(basis, year - 1, month), valueKey: 'fyRecent' },
+    { key: 'fyYoy', label: 'YoY / pp', title: `${currentPeriodLabel(basis, year - 1, month)} vs ${currentPeriodLabel(basis, year - 2, month)}: amount growth in %, margin change in percentage points`, valueKey: 'fyRecent', compareKey: 'fyOlder' },
     { key: 'current', label: currentPeriodLabel(basis, year, month), valueKey: 'current' },
     { key: 'currentYoy', label: 'YoY / pp', title: `${currentPeriodLabel(basis, year, month)} vs ${currentPeriodLabel(basis, year - 1, month)}: amount growth in %, margin change in percentage points`, valueKey: 'current', compareKey: 'currentPrior' },
   ];
@@ -149,7 +150,9 @@ export function buildPnlComparison(
   if (basis === 'ltm' && !currentLtmComplete) {
     notice = `${currentPeriodLabel(basis, year, month)} is unavailable because the filtered data does not contain 12 calendar months.`;
   } else if (basis === 'ltm' && !priorLtmComplete) {
-    notice = `Prior-year LTM history is incomplete, so current-period YoY values are shown as unavailable.`;
+    notice = `${currentPeriodLabel(basis, year - 1, month)} is unavailable because the filtered data does not contain 12 calendar months. Comparisons using this period are also unavailable.`;
+  } else if (basis === 'ltm' && !olderLtmComplete) {
+    notice = `${currentPeriodLabel(basis, year - 2, month)} is unavailable because the filtered data does not contain 12 calendar months. Comparisons using this period are also unavailable.`;
   }
 
   const comparedRecords = new Set(['fyOlder', 'fyRecent', 'currentPrior', 'current'].flatMap(key =>

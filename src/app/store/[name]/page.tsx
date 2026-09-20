@@ -7,6 +7,7 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import { useRegisterReportScope } from '@/contexts/ReportContext';
 import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
 import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregate, getMonthlyTrend } from '@/lib/calculations';
 import KPICard from '@/components/ui/KPICard';
@@ -14,6 +15,7 @@ import { formatCurrency, formatCompact, formatPercent } from '@/lib/formatters';
 
 export default function StoreDetailPage() {
   const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  useRegisterReportScope({ profitMetric });
   const profit = PROFIT_METRICS[profitMetric];
   const params = useParams();
   const storeName = decodeURIComponent(params.name as string);

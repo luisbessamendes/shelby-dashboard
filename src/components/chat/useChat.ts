@@ -1,101 +1,68 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useFilters } from '@/contexts/FilterContext';
+import { useReportScope } from '@/contexts/ReportContext';
+import type { EvidenceSource } from '@/lib/chat-runtime';
+import { chatHistory } from '@/lib/chat-history';
 
 export interface ChatMsg {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-}
-
-interface ChatMeta {
-  latencyMs: number;
-  tokens: number;
-  scope: string;
+  scope?: string;
+  sources?: EvidenceSource[];
 }
 
 export function useChat() {
   const { filters } = useFilters();
+  const report = useReportScope();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastMeta, setLastMeta] = useState<ChatMeta | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const requestId = useRef(0);
+  const busy = useRef(false);
+  useEffect(() => () => { requestId.current++; abortRef.current?.abort(); }, []);
+  const scope = JSON.stringify({ report, period: `${filters.periodBasis} ${filters.year ?? 'All'}/${filters.month ?? 'All'}`,
+    selections: Object.fromEntries(['stores', 'concepts', 'regions', 'locations', 'legalEntities', 'storeTypes'].map(key => {
+      const values = filters[key as 'stores'];
+      return [key, { count: values.length, sample: values.slice(0, 2).map(v => v.slice(0, 100)) }];
+    })) });
 
-  const sendMessage = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || isLoading) return;
-
-    setError(null);
-    const userMsg: ChatMsg = { id: `u-${Date.now()}`, role: 'user', content: trimmed };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
-    setIsLoading(true);
-
+  const perform = useCallback(async (history: ChatMsg[], text: string) => {
+    if (!text.trim() || busy.current) return;
+    busy.current = true;
+    const id = ++requestId.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const userMsg: ChatMsg = { id: `u-${id}-${Date.now()}`, role: 'user', content: text.trim(), scope };
+    const next = [...history, userMsg];
+    setMessages(next); setError(null); setIsLoading(true);
     try {
-      abortRef.current = new AbortController();
-
       const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          filters,
-        }),
-        signal: abortRef.current.signal,
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ messages: chatHistory(next), filters, report }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'An unexpected error occurred. Please retry.');
-        return;
-      }
-
-      const assistantMsg: ChatMsg = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: data.reply,
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-      setLastMeta(data.meta ?? null);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      setError('Failed to connect to the AI analyst. Please check your connection and retry.');
+      if (id !== requestId.current) return;
+      if (!res.ok) { setError(data.error || 'The analysis could not be completed.'); return; }
+      setMessages(prev => [...prev, { id: `a-${id}-${Date.now()}`, role: 'assistant', content: data.reply, sources: data.sources, scope }]);
+    } catch (err) {
+      if (id === requestId.current && !(err instanceof Error && err.name === 'AbortError')) setError('Could not reach the AI analyst. Please retry.');
     } finally {
-      setIsLoading(false);
-      abortRef.current = null;
+      if (id === requestId.current) { busy.current = false; setIsLoading(false); abortRef.current = null; }
     }
-  }, [messages, filters, isLoading]);
+  }, [filters, report, scope]);
 
+  const sendMessage = useCallback((text: string) => perform(messages, text), [messages, perform]);
   const newChat = useCallback(() => {
-    if (abortRef.current) abortRef.current.abort();
-    setMessages([]);
-    setError(null);
-    setLastMeta(null);
-    setIsLoading(false);
+    requestId.current++; abortRef.current?.abort(); abortRef.current = null; busy.current = false;
+    setMessages([]); setError(null); setIsLoading(false);
   }, []);
-
   const retry = useCallback(() => {
-    if (messages.length === 0) return;
-    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-    if (!lastUserMsg) return;
-    // Remove last user message to re-send
-    setMessages(prev => prev.filter(m => m.id !== lastUserMsg.id));
-    // Use setTimeout to allow state to settle
-    setTimeout(() => {
-      sendMessage(lastUserMsg.content);
-    }, 50);
-  }, [messages, sendMessage]);
-
-  return {
-    messages,
-    isLoading,
-    error,
-    lastMeta,
-    sendMessage,
-    newChat,
-    retry,
-  };
+    const index = messages.findLastIndex(m => m.role === 'user');
+    if (index >= 0) void perform(messages.slice(0, index), messages[index].content);
+  }, [messages, perform]);
+  return { messages, isLoading, error, sendMessage, newChat, retry, report };
 }

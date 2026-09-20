@@ -1,99 +1,31 @@
 'use client';
 
-import React from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { EvidenceSource } from '@/lib/chat-runtime';
 
-interface ChatMessageProps {
-  role: 'user' | 'assistant';
-  content: string;
-}
+const sourceNames: Record<string, string> = {
+  get_metric_definitions: 'Metric definitions', query_metrics: 'Dashboard calculations', get_time_series: 'Trend calculations',
+  get_pnl_report: 'Historical P&L', get_perimeter_report: 'L4L / Perimeter and store register', get_store_evidence: 'Monthly source records',
+  get_profit_bridge: 'Profit waterfall', get_store_benchmarks: 'Store benchmarks', get_data_quality: 'Data quality checks', get_upload_history: 'Upload history',
+};
 
-/** Simple markdown-like rendering for AI messages */
-function renderContent(text: string): React.ReactNode {
-  // Split into lines and process
-  const lines = text.split('\n');
-  const elements: React.ReactNode[] = [];
-  let listItems: React.ReactNode[] = [];
-  let listKey = 0;
-
-  const flushList = () => {
-    if (listItems.length > 0) {
-      elements.push(
-        <ul key={`list-${listKey++}`} className="chat-msg-list">
-          {listItems}
-        </ul>
-      );
-      listItems = [];
-    }
-  };
-
-  lines.forEach((line, idx) => {
-    const trimmed = line.trim();
-
-    // Empty line
-    if (!trimmed) {
-      flushList();
-      return;
-    }
-
-    // Bullet list item
-    if (/^[-•]\s/.test(trimmed)) {
-      listItems.push(
-        <li key={idx}>{renderInline(trimmed.replace(/^[-•]\s/, ''))}</li>
-      );
-      return;
-    }
-
-    // Numbered list item
-    if (/^\d+\.\s/.test(trimmed)) {
-      listItems.push(
-        <li key={idx}>{renderInline(trimmed.replace(/^\d+\.\s/, ''))}</li>
-      );
-      return;
-    }
-
-    flushList();
-
-    // Heading (## or **Title**)
-    if (/^#{1,3}\s/.test(trimmed)) {
-      elements.push(
-        <p key={idx} className="chat-msg-heading">
-          {renderInline(trimmed.replace(/^#{1,3}\s/, ''))}
-        </p>
-      );
-      return;
-    }
-
-    // Regular paragraph
-    elements.push(
-      <p key={idx} className="chat-msg-paragraph">
-        {renderInline(trimmed)}
-      </p>
-    );
-  });
-
-  flushList();
-  return elements;
-}
-
-/** Inline formatting: **bold** */
-function renderInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
-}
-
-export default function ChatMessage({ role, content }: ChatMessageProps) {
-  return (
-    <div className={`chat-message chat-message-${role}`}>
-      {role === 'assistant' && <div className="chat-avatar">🤖</div>}
-      <div className={`chat-bubble chat-bubble-${role}`}>
-        {role === 'assistant' ? renderContent(content) : <p>{content}</p>}
-      </div>
-      {role === 'user' && <div className="chat-avatar chat-avatar-user">👤</div>}
+export default function ChatMessage({ role, content, sources = [] }: { role: 'user' | 'assistant'; content: string; sources?: EvidenceSource[] }) {
+  return <div className={`chat-message chat-message-${role}`}>
+    <div className={`chat-bubble chat-bubble-${role}`}>
+      {role === 'assistant' ? <Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
+        table: ({ children }) => <div className="chat-table-scroll"><table>{children}</table></div>,
+        a: ({ children }) => <span>{children}</span>,
+        img: ({ alt }) => <span>{alt}</span>,
+      }}>{content}</Markdown> : <p>{content}</p>}
+      {sources.length > 0 && <details className="chat-sources">
+        <summary>Sources ({sources.length})</summary>
+        {sources.map(source => <div key={source.id} className="chat-source">
+          <strong>[{source.id}] {sourceNames[source.tool] ?? 'Dashboard evidence'}</strong>
+          <div>{source.period}{source.records == null ? '' : ` | ${source.records} records`}</div>
+          {source.warnings.map(warning => <div key={warning} className="chat-source-warning">{warning}</div>)}
+        </div>)}
+      </details>}
     </div>
-  );
+  </div>;
 }

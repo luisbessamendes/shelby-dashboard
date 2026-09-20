@@ -5,11 +5,10 @@ import ChatMessage from './ChatMessage';
 import { useChat } from './useChat';
 
 const STARTER_PROMPTS = [
-  'What was the most profitable concept in the last month?',
-  'Which stores are EBITDA-negative?',
-  'Which concept had the best EBITDA margin in LTM?',
-  'What are the biggest negative variances this month?',
-  'Summarize performance by region.',
+  'Which stores are driving the change in Store EBITDAR?',
+  'Which stores contribute to Other Impact, and why?',
+  'Explain how Prime Cost % is calculated.',
+  'Are there missing records affecting this comparison?',
 ];
 
 interface ChatPanelProps {
@@ -63,7 +62,7 @@ export default function ChatPanel({ isOpen, onClose, onMinimize }: ChatPanelProp
   const showStarters = messages.length === 0 && !isLoading;
 
   return (
-    <div className={`chat-panel ${isOpen ? 'chat-panel-open' : ''}`}>
+    <div className={`chat-panel ${isOpen ? 'chat-panel-open' : ''}`} role="dialog" aria-label="Shelby AI Analyst" hidden={!isOpen}>
       {/* Header */}
       <div className="chat-panel-header">
         <div className="chat-panel-header-left">
@@ -124,7 +123,7 @@ export default function ChatPanel({ isOpen, onClose, onMinimize }: ChatPanelProp
         )}
 
         {messages.map(msg => (
-          <ChatMessage key={msg.id} role={msg.role} content={msg.content} />
+          <ChatMessage key={msg.id} role={msg.role} content={msg.content} sources={msg.sources} />
         ))}
 
         {isLoading && (
@@ -154,6 +153,8 @@ export default function ChatPanel({ isOpen, onClose, onMinimize }: ChatPanelProp
           ref={inputRef}
           className="chat-input"
           type="text"
+          maxLength={8000}
+          aria-label="Question for AI analyst"
           placeholder="Ask about your portfolio..."
           value={input}
           onChange={e => setInput(e.target.value)}

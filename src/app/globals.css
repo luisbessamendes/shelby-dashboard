@@ -990,6 +990,10 @@ body {
   color: var(--accent-warning);
 }
 
+.text-center {
+  text-align: center !important;
+}
+
 /* ── Buttons ─────────────────────────────────────────── */
 .btn {
   font-family: var(--font-sans);

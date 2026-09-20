@@ -19,21 +19,21 @@ function getSupabase() {
 }
 
 /** Fetch all records from Supabase (read-only) */
-async function fetchAllRecords(): Promise<StoreMonthRecord[]> {
+export async function fetchAllRecords(signal?: AbortSignal): Promise<StoreMonthRecord[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from('fact_store_month')
-    .select('*')
-    .order('year', { ascending: true })
-    .order('month', { ascending: true })
-    .limit(100000);
-
-  if (error) throw new Error(`Supabase query failed: ${error.message}`);
-  return (data as StoreMonthRecord[]) || [];
+  const records: StoreMonthRecord[] = [];
+  for (let offset = 0; offset < 100000; offset += 1000) {
+    const query = supabase.from('fact_store_month').select('*').order('year').order('month').order('id').range(offset, offset + 999);
+    const { data, error } = await (signal ? query.abortSignal(signal) : query);
+    if (error) throw new Error(`Supabase query failed: ${error.message}`);
+    records.push(...(data as StoreMonthRecord[] ?? []));
+    if (!data || data.length < 1000) return records;
+  }
+  throw new Error('The dataset exceeds the analysis limit. No partial totals were returned.');
 }
 
 /** Apply dimension filters (same logic as FilterContext, but server-side) */
-function applyDimensionFilters(records: StoreMonthRecord[], filters: FilterState): StoreMonthRecord[] {
+export function applyDimensionFilters(records: StoreMonthRecord[], filters: FilterState): StoreMonthRecord[] {
   let result = records;
   if (filters.stores?.length > 0) result = result.filter(d => filters.stores.includes(d.store));
   if (filters.concepts?.length > 0) result = result.filter(d => filters.concepts.includes(d.concept));

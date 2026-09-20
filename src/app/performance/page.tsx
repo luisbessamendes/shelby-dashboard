@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFilters } from '@/contexts/FilterContext';
+import { useRegisterReportScope } from '@/contexts/ReportContext';
 import { filterByPeriod, aggregatePerStore } from '@/lib/calculations';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/formatters';
 
@@ -15,6 +16,7 @@ export default function PerformancePage() {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('totalStoreEbitdar');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  useRegisterReportScope({ search });
 
   const periodData = useMemo(() => {
     if (!filters.year || !filters.month) return filteredData;

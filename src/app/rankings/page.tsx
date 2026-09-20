@@ -6,6 +6,7 @@ import {
   Cell, ScatterChart, Scatter
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import { useRegisterReportScope } from '@/contexts/ReportContext';
 import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
 import KPICard from '@/components/ui/KPICard';
 import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregatePerStore } from '@/lib/calculations';
@@ -14,6 +15,7 @@ import { CHART_COLORS } from '@/lib/constants';
 
 export default function RankingsPage() {
   const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  useRegisterReportScope({ profitMetric });
   const profit = PROFIT_METRICS[profitMetric];
   const { filteredData, filters, isLoading } = useFilters();
 

@@ -431,3 +431,17 @@
     left: 16px;
   }
 }
+/* Evidence tables stay inside the existing chat panel. */
+.chat-panel[hidden] { display: none; }
+.chat-input { min-width: 0; }
+.chat-bubble { min-width: 0; overflow-wrap: anywhere; }
+.chat-bubble > p { margin: 0 0 10px; }
+.chat-bubble h1, .chat-bubble h2, .chat-bubble h3 { font-size: 14px; margin: 12px 0 6px; }
+.chat-table-scroll { max-width: 100%; overflow: auto; margin: 10px 0; }
+.chat-table-scroll table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.chat-table-scroll th, .chat-table-scroll td { padding: 6px 8px; border-bottom: 1px solid var(--border-color, #e5e7eb); text-align: left; min-width: 80px; }
+.chat-table-scroll th { font-weight: 600; color: var(--text-secondary); }
+.chat-sources { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border-color, #e5e7eb); font-size: 11px; }
+.chat-sources summary { cursor: pointer; color: var(--text-secondary); }
+.chat-source { padding: 7px 0; }
+.chat-source-warning { color: var(--text-secondary); margin-top: 4px; }

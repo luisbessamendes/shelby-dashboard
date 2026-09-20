@@ -32,14 +32,12 @@ export default function ChatLauncher() {
         {state === 'closed' && <span className="chat-launcher-pulse" />}
       </button>
 
-      {/* Chat panel — only rendered when open */}
-      {showPanel && (
+      {/* Keep the conversation when minimizing or navigating between reports. */}
         <ChatPanel
-          isOpen={true}
+          isOpen={showPanel}
           onClose={handleClose}
           onMinimize={handleMinimize}
         />
-      )}
     </>
   );
 }

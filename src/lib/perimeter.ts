@@ -77,7 +77,7 @@ function comparisonPeriod(basis: PeriodBasis, year: number, month: number): Peri
   };
 }
 
-function identityResolver(records: StoreMonthRecord[]) {
+export function identityResolver(records: StoreMonthRecord[]) {
   const codes = new Map<string, Set<string>>();
   for (const r of records) {
     if (r.code?.trim()) codes.set(r.store, (codes.get(r.store) ?? new Set()).add(normalizePerimeterCode(r.code)));
@@ -87,6 +87,17 @@ function identityResolver(records: StoreMonthRecord[]) {
     const code = r.code?.trim() ? normalizePerimeterCode(r.code) : (known?.size === 1 ? [...known][0] : '');
     return code ? `code:${code}` : `store:${r.store}`;
   };
+}
+
+export function selectPerimeterRecords(records: StoreMonthRecord[], filters: PerimeterFilters) {
+  const identity = identityResolver(records);
+  const selectedIds = new Set(records.filter(r => filters.stores.includes(r.store)).map(identity));
+  const dimensions = [
+    ['concept', filters.concepts], ['region', filters.regions], ['location', filters.locations],
+    ['legal_entity', filters.legalEntities], ['store_type', filters.storeTypes],
+  ] as const;
+  return records.filter(r => (!filters.stores.length || selectedIds.has(identity(r)))
+    && dimensions.every(([field, values]) => !values.length || values.includes(r[field])));
 }
 
 function coverage(records: StoreMonthRecord[], requiredMonths: number[], identity: (r: StoreMonthRecord) => string) {
@@ -227,8 +238,6 @@ export function buildPerimeterComparison(
   const identitiesByName = new Map<string, Set<string>>();
   for (const r of history) identitiesByName.set(r.store, (identitiesByName.get(r.store) ?? new Set()).add(identity(r)));
   const ambiguous = new Set([...identitiesByName.values()].filter(ids => ids.size > 1).flatMap(ids => [...ids]));
-  // Resolve store names to codes before applying only the active business filters.
-  const selectedIdsByName = new Set(allRecords.filter(r => filters.stores.includes(r.store)).map(identity));
   const activeDimensions = [
     ['concept', filters.concepts], ['region', filters.regions], ['location', filters.locations],
     ['legal_entity', filters.legalEntities], ['store_type', filters.storeTypes],
@@ -247,9 +256,7 @@ export function buildPerimeterComparison(
       model.notices.push(`${unreported.length} registered store(s) expected by this endpoint have no financial records: ${unreported.map(entry => entry.store).join('; ')}. No amounts have been invented for these stores.`);
     }
   }
-  const selected = history.filter(r => (filters.stores.length === 0 || selectedIdsByName.has(identity(r)))
-    && activeDimensions.every(([field, values]) => values.length === 0 || values.includes(r[field]))
-    && inWindows(index(r)));
+  const selected = selectPerimeterRecords(allRecords, filters).filter(r => inWindows(index(r)));
   const selectedIds = new Set(selected.map(identity));
   model.stores = [...histories].filter(([id]) => selectedIds.has(id)).map(([id, rows]) => {
     const latest = rows.reduce((a, b) => index(a) > index(b) ? a : b);

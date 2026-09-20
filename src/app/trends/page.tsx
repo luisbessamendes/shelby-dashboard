@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useFilters } from '@/contexts/FilterContext';
+import { useRegisterReportScope } from '@/contexts/ReportContext';
 import { getYearlyComparison } from '@/lib/calculations';
 import type { TrendBasis } from '@/lib/calculations';
 import TrendsCharts from './TrendsCharts';
@@ -10,6 +11,7 @@ import TrendYearlyTable from './TrendYearlyTable';
 export default function TrendsPage() {
   const { filteredData, filters, availableYears, isLoading } = useFilters();
   const [trendBasis, setTrendBasis] = useState<TrendBasis>('monthly');
+  useRegisterReportScope({ trendBasis });
 
   const yearlyComparison = useMemo(() => {
     if (!filters.year || !filters.month) return [];
@@ -36,8 +38,9 @@ export default function TrendsPage() {
           <p className="page-description">{trendBasis === 'ltm' ? 'LTM' : 'Monthly'} performance trends across the portfolio</p>
         </div>
         <div className="filter-group">
-          <label className="filter-label">Trend View</label>
+          <label className="filter-label" htmlFor="trend-view">Trend View</label>
           <select
+            id="trend-view"
             className="filter-select"
             value={trendBasis}
             onChange={e => setTrendBasis(e.target.value as TrendBasis)}

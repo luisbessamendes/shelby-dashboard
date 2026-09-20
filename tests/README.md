@@ -7,6 +7,15 @@
 
 Browser tests use synthetic monthly records and intercept all database requests. They reject writes and never press the upload confirmation or data-deletion buttons. Screenshots are written to `outputs/ebitdar-qa/`.
 
+## AI Analyst
+
+- `npm test` includes read-only BI tools, complete-period rules, P&L and L4L reconciliation, filter boundaries, the Farol EUR 249,471 missing-baseline case, request validation, tool-loop limits, citation validation and bounded conversation history. These tests do not call OpenAI.
+- `node tests/bi-browser.mjs` checks report context, navigation, minimize/restore, retries, cancellation, safe Markdown tables, sources and desktop/mobile layout. It mocks both financial data and chat responses; it cannot spend API credits or write data. Use the Playwright environment settings above. Screenshots go to `outputs/bi-qa/`.
+- The server reuses `OPENAI_API_KEY`. The default model is `gpt-5.6-sol` with medium reasoning; optional `OPENAI_ANALYST_MODEL` must support Responses, tools and reasoning. No key is sent to the browser. Responses use `store: false` (this does not change the account's provider retention policy).
+- Each question reads one paginated financial snapshot. Tools share dashboard calculations and return scope, reporting warnings and record/register evidence. Period overrides are allowed; business selections cannot expand beyond header filters except the documented Store Detail own-store behavior.
+- Live smoke checks require explicit approval to use the existing key. Do not include credentials or full financial snapshots in test logs. Numerical tools are deterministic; natural-language interpretation still requires review.
+- Before public rollout, address authentication and durable rate limits. The existing app is public; the route's per-instance limit and origin check are only basic abuse controls, not authorization. No authentication system or deployment is introduced in this change.
+
 ## L4L Register
 
 `src/lib/data/perimeter-registry.json` is a versioned snapshot of the user's `Shelby - L4L Analysis.xlsx`, sheet `AUX_ENTITIES_PERIMETER`. It retains source row numbers, the separate I/J classifications, original notes, month-level event dates and the workbook SHA-256. It is not live-synced to Excel and does not change financial uploads. Do not infer replacement lifecycle flags from sales when the register needs updating.

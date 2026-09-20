@@ -81,15 +81,57 @@ test('LTM April 2026 covers May 2025 through April 2026, with prior-year compari
   assert.equal(buildPnlComparison(history(), 'ltm', 2024, 11).groups.at(-1).values.current, null);
 });
 
-test('FY, Monthly and YTD preserve group totals and calendar windows', () => {
+test('Monthly and YTD preserve group totals and calendar windows across all columns', () => {
   const records = [...history(), ...history().map(r => ({ ...r, store: 'Second store', concept: 'Bifanas' }))];
   const monthly = buildPnlComparison(records, 'monthly', 2026, 4);
   const total = monthly.groups.at(-1).values;
-  assert.equal(total.fyOlder.totalStoreEbitdar, 9120);
+  assert.equal(total.fyOlder.totalStoreEbitdar, 760);
+  assert.equal(total.fyRecent.totalStoreEbitdar, 760);
   assert.equal(total.current.totalStoreEbitdar, 760);
   assert.equal(buildPnlComparison(records, 'ytd', 2026, 4).groups.at(-1).values.current.totalStoreEbitdar, 3040);
   assert.equal(monthly.groups.filter(group => group.kind === 'concept-total').reduce((sum, group) => sum + group.values.current.totalStoreEbitdar, 0), total.current.totalStoreEbitdar);
   assert.equal(getYearlyComparison(records, 'ltm', 4, [2024, 2025, 2026]).length, 2);
+});
+
+test('P&L July columns follow the selected basis for all three years and YoY comparisons', () => {
+  const records = [2023, 2024, 2025, 2026].flatMap(year =>
+    Array.from({ length: 12 }, (_, index) => storeMonth({
+      year, month: index + 1, tickets: (year - 2022) * 100 + index + 1,
+    })));
+  for (const [basis, prefix, expected] of [
+    ['monthly', '', [207, 307, 407]],
+    ['ytd', 'YTD ', [1428, 2128, 2828]],
+    ['ltm', 'LTM ', [1978, 3178, 4378]],
+  ]) {
+    const model = buildPnlComparison(records, basis, 2026, 7);
+    const valueColumns = model.columns.filter(column => !column.compareKey);
+    assert.deepEqual(valueColumns.map(column => column.label), [2024, 2025, 2026].map(year => `${prefix}Jul ${year}`));
+    for (const group of model.groups) {
+      assert.deepEqual(valueColumns.map(column => group.values[column.valueKey].totalTickets), expected);
+      assert.equal(group.values.currentPrior.totalTickets, expected[1]);
+      for (const [index, column] of model.columns.filter(column => column.compareKey).entries()) {
+        assert.equal(comparisonChange(group.values[column.valueKey].totalTickets, group.values[column.compareKey].totalTickets),
+          (expected[index + 1] - expected[index]) / expected[index]);
+        assert.ok(column.title.startsWith(`${prefix}Jul ${2025 + index} vs ${prefix}Jul ${2024 + index}:`));
+      }
+    }
+    assert.equal(model.notice, null);
+  }
+  const changedSelection = buildPnlComparison(records, 'ytd', 2025, 2);
+  assert.deepEqual(changedSelection.columns.filter(column => !column.compareKey).map(column => column.label),
+    ['YTD Feb 2023', 'YTD Feb 2024', 'YTD Feb 2025']);
+  assert.equal(changedSelection.groups.at(-1).values.fyOlder.totalTickets, 203);
+});
+
+test('P&L incomplete historical LTM windows are unavailable rather than partial totals', () => {
+  const model = buildPnlComparison(history(), 'ltm', 2026, 4);
+  assert.equal(model.groups.at(-1).values.fyOlder, null);
+  assert.match(model.notice, /LTM Apr 2024 is unavailable/);
+  const gap = history().filter(row => !(row.year === 2024 && row.month === 8));
+  const missingPrior = buildPnlComparison(gap, 'ltm', 2026, 4);
+  assert.equal(missingPrior.groups.at(-1).values.fyRecent, null);
+  assert.equal(missingPrior.groups.at(-1).values.currentPrior, null);
+  assert.equal(missingPrior.groups.at(-1).values.current.totalTickets, 1200);
 });
 
 test('YoY handles negative baselines, zero denominators and margin changes in pp', () => {

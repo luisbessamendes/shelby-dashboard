@@ -6,6 +6,7 @@ import {
   Cell, ScatterChart, Scatter,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import { useRegisterReportScope } from '@/contexts/ReportContext';
 import ProfitWaterfall from '@/components/ui/ProfitWaterfall';
 import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
 import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregate, aggregatePerStore } from '@/lib/calculations';
@@ -14,6 +15,7 @@ import { CHART_COLORS } from '@/lib/constants';
 
 export default function MarginsPage() {
   const [profitMetric, setProfitMetric] = useState<ProfitMetric>('store_ebitdar');
+  useRegisterReportScope({ profitMetric });
   const profit = PROFIT_METRICS[profitMetric];
   const { filteredData, filters, isLoading } = useFilters();
 

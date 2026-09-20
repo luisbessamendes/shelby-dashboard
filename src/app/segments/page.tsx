@@ -6,6 +6,7 @@ import {
   Cell, ScatterChart, Scatter, ZAxis,
 } from 'recharts';
 import { useFilters } from '@/contexts/FilterContext';
+import { useRegisterReportScope } from '@/contexts/ReportContext';
 import ProfitMetricSelect from '@/components/ui/ProfitMetricSelect';
 import PerimeterAnalysis from '@/components/segments/PerimeterAnalysis';
 import { PROFIT_METRICS, type ProfitMetric, filterByPeriod, aggregateByDimension } from '@/lib/calculations';
@@ -30,6 +31,7 @@ export default function SegmentsPage() {
   const [dimension, setDimension] = useState<Dimension>('concept');
   const [sortKey, setSortKey] = useState<string>('storeEbitdarPct');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  useRegisterReportScope({ dimension, profitMetric });
 
   const handleSort = (key: string) => {
     if (sortKey === key) {

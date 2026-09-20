@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { FilterProvider } from '@/contexts/FilterContext';
+import { ReportProvider } from '@/contexts/ReportContext';
 import Sidebar from '@/components/layout/Sidebar';
 import FilterBar from '@/components/layout/FilterBar';
 import ChatLauncher from '@/components/chat/ChatLauncher';
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <FilterProvider>
+          <ReportProvider>
           <div className="app-layout">
             <Sidebar />
             <main className="main-content">
@@ -25,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
           </div>
           <ChatLauncher />
+          </ReportProvider>
         </FilterProvider>
       </body>
     </html>
